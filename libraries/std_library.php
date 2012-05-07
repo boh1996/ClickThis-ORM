@@ -7,7 +7,7 @@
  * @subpackage Std Data Library Template
  * @category Library template
  * @package ClicKThis
- * @version 1.1
+ * @version 1.2
  * @author Illution <support@illution.dk>
  */ 
 class Std_Library{
@@ -420,7 +420,7 @@ class Std_Library{
 	private function _Load_From_Class($Simple = false,$Arguments = NULL){
 		if(property_exists($this, "_INTERNAL_LOAD_FROM_CLASS") && isset($this->_INTERNAL_LOAD_FROM_CLASS) && !is_null($this->_INTERNAL_LOAD_FROM_CLASS) && is_array($this->_INTERNAL_LOAD_FROM_CLASS) && !$Simple){
 			if(!is_null($this->_INTERNAL_LOAD_FROM_CLASS)){
-				foreach ($this->_INTERNAL_LOAD_FROM_CLASS as $Key => $Value) {
+				foreach ($this->_INTERNAL_LOAD_FROM_CLASS as $Key => $ClassName) {
 					if(property_exists($this, $Key) && !is_null($this->{$Key})){
 						$ChildSimple = $Simple;
 						if(self::_Has_Simple_Load_Key($Key)){
@@ -432,22 +432,27 @@ class Std_Library{
 
 						//If the CodeIgniter instance exists and isn't null, then load the library
 						if(property_exists($this, "_CI") && !is_null($this->_CI)){
-							@$this->_CI->load->library($Value);
+							@$this->_CI->load->library($ClassName);
+						} else {
+							return FALSE;
 						}
 						if(!is_null($this->{$Key}) && $this->{$Key} != ""){
 							//If the property is an array and it contains data, then make the output an array of objects
 							if(is_array($this->{$Key}) && count($this->{$Key}) > 0){
 								$Temp = array();
 								foreach ($this->{$Key} as $Name => $Value) {
-									if(is_object($Name) || is_object($Value)){
+									if(is_object($Name)){
 										$Temp[] = $Name;
+									} else if(is_object($Value)){ 
+										$Temp[] = $Value;
 									} else {
-										if(!is_null($Value) && class_exists($Value) && !is_null($Name) && $Name != ""){
-											$Pass = array($Name,$ChildSimple);
+										if(!is_null($Value) && (is_integer($Value) || is_string($Value)) && class_exists($ClassName)){
+											$Value = (int) $Value;
+											$Pass = array($Value,$ChildSimple);
 											if(!is_null($Arguments) && count($Arguments) > 0){
 												$Pass = call_user_func_array("self::_Merge_Arguments", array_merge($Pass,$Arguments));
 											}
-											$Object = new $Value();
+											$Object = new $ClassName();
 											if(call_user_func_array(array($Object,"Load"),$Pass)){
 												if(!is_null($Object)){
 													$Temp[] = $Object;
@@ -463,8 +468,8 @@ class Std_Library{
 							//Else just set the property as a single object
 							} else {
 								if(!is_null($this->{$Key})){
-									if(class_exists($Value) && gettype($this->{$Key}) != "object"){
-										$Object = new $Value();
+									if(class_exists($ClassName) && gettype($this->{$Key}) != "object"){
+										$Object = new $ClassName();
 										$Pass = array($this->{$Key},$ChildSimple);
 										if(!is_null($Arguments) && count($Arguments) > 0){
 											$Pass = call_user_func_array("self::_Merge_Arguments", array_merge($Pass,$Arguments));
