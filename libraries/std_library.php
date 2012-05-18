@@ -53,7 +53,7 @@ class Std_Library{
 	 * @since 1.0
 	 * @internal This is an internal ignoring list for export with the database flag turned on
 	 * @example
-	 * $_INTERNAL_DATABASE_EXPORT_INGNORE = array("Id");
+	 * $_INTERNAL_DATABASE_EXPORT_INGNORE = array("id");
 	 */
 	public static $_INTERNAL_DATABASE_EXPORT_INGNORE = NULL;
 
@@ -107,7 +107,7 @@ class Std_Library{
 	 * @access public
 	 * @example
 	 * @static
-	 * $this->_INTERNAL_LINK_PROPERTIES = array("Questions" => array("Questions",array("SeriesId" => "Id"),array("Properties to select data from")));
+	 * $this->_INTERNAL_LINK_PROPERTIES = array("Questions" => array("Questions",array("SeriesId" => "id"),array("Properties to select data from")));
 	 * @see Link
 	 */
 	public static $_INTERNAL_LINK_PROPERTIES = NULL;
@@ -263,10 +263,10 @@ class Std_Library{
 		unset($Arguments[0]);
 		unset($Arguments[1]);
 		if(!is_null($Id)){
-			$this->Id = $Id;
+			$this->id = $Id;
 		}
-		if(isset($this->Id)){
-			$Id = $this->Id;
+		if(isset($this->id)){
+			$Id = $this->id;
 		} else if(isset($this->id)){
 			$Id = $this->id;
 		} else {
@@ -296,7 +296,7 @@ class Std_Library{
 		$Return = array();
 		$Convert = $this->_CI->_INTERNAL_DATABASE_MODEL->Get_Names();
 		foreach ($Variables as $Key => $Value) {
-			if((isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && (!in_array($Key, $this->_INTERNAL_DATABASE_EXPORT_INGNORE)) || ($Key == "id" || $Key == "Id")) || !isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE)){
+			if((isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && (!in_array($Key, $this->_INTERNAL_DATABASE_EXPORT_INGNORE)) || ($Key == "id" || $Key == "id")) || !isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE)){
 				if(!is_null($Convert) && is_array($Convert) && array_key_exists($Key, $Convert)){
 					$Return[$Convert[$Key]] = $Value;
 				} else {
@@ -1005,7 +1005,7 @@ class Std_Library{
 	/**
 	 * This function saves the local class data to the database row of the Id property
 	 * @return string This function can return a error string
-	 * @todo Make the linked properties be saved to, and with the an updated id, etc SeriesId = $this->Id
+	 * @todo Make the linked properties be saved to, and with the an updated id, etc SeriesId = $this->id
 	 * @since 1.0
 	 * @access public
 	 */
@@ -1086,7 +1086,7 @@ class Std_Library{
 			if(!is_null($Select)){
 				$UseProperty = $Select;
 			} else {
-				$UseProperty = "Id";
+				$UseProperty = "id";
 			}
 
 			if(count($Data) > 1){
@@ -1194,8 +1194,8 @@ class Std_Library{
 				$Temp = array();
 				foreach ($Data as $K => $Object) {
 					if(!is_null($Object)){
-						if(property_exists($Object, "Id")){
-							$Temp[] = $Object->Id;
+						if(property_exists($Object, "id")){
+							$Temp[] = $Object->id;
 						} elseif(method_exists($Object, "Export")){
 							$Temp[] = $Object->Export(true);
 						}
@@ -1205,8 +1205,8 @@ class Std_Library{
 					$Return = $Temp;
 				}
 			} else {
-				if(property_exists($Data, "Id")){
-					$Return = $Data->Id;
+				if(property_exists($Data, "id")){
+					$Return = $Data->id;
 				} elseif(method_exists($Data, "Export")){
 					$Return = $Data->Export(true);
 				}
@@ -1542,10 +1542,10 @@ class Std_Library{
 	private function _RemoveUserData($Id = false){
 		foreach(get_class_vars(get_class($this)) as $Name => $Value){
 			if($Name != "CI" && $Name != "_CI" && $Name != "Database_Table" && strpos($Name, "INTERNAL_") === false){
-				if($Name != "Id"){
+				if($Name != "id"){
 					$this->{$Name} = NULL;
 				}
-				if($Id == true && $Name == "Id"){
+				if($Id == true && $Name == "id"){
 					$this->{$Name} = NULL;
 				}
 			}
@@ -1575,11 +1575,11 @@ class Std_Library{
 	 */
 	private function _RemoveDatabaseData($Id = NULL,$Table = NULL){
 		if(!is_null($Id)){
-			$this->Id = $Id;
+			$this->id = $Id;
 		}
-		if(!is_null($this->Id) && !is_null($Table)){
+		if(!is_null($this->id) && !is_null($Table)){
 			if(property_exists($this, "_CI") && property_exists($this, "_CI")){
-				$this->_CI->db->delete($Table,array("Id" => $this->Id));
+				$this->_CI->db->delete($Table,array("id" => $this->id));
 			}
 		}
 	}
@@ -1626,10 +1626,10 @@ class Std_Library{
 	 * @access public
 	 */
 	public function Refresh(){
-		if(property_exists($this, "Id")){
-			if(!is_null($this->Id)){
+		if(property_exists($this, "id")){
+			if(!is_null($this->id)){
 				if(method_exists($this, "Load")){
-					return self::Load($this->Id);
+					return self::Load($this->id);
 				}
 			}
 		}
@@ -1645,8 +1645,8 @@ class Std_Library{
 	 */
 	public function Delete($Database = true){
 		if($Database){
-			if(method_exists($this, "_RemoveDatabaseData") && isset($this->Id)){
-				self::_RemoveDatabaseData($this->Id,$this->Database_Table);
+			if(method_exists($this, "_RemoveDatabaseData") && isset($this->id)){
+				self::_RemoveDatabaseData($this->id,$this->Database_Table);
 			}
 			if(method_exists($this, "_RemoveUserData")){
 				self::_RemoveUserData(true);
@@ -1672,8 +1672,8 @@ class Std_Library{
 		if(!is_null($Array)){
 			self::_SetDataArray($Array);
 			if($Database && !is_null($this->_CI) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
-				$this->Id = $this->_CI->_INTERNAL_DATABASE_MODEL->Create($this);
-				return $this->Id;
+				$this->id = $this->_CI->_INTERNAL_DATABASE_MODEL->Create($this);
+				return $this->id;
 			}
 		}
 	}
@@ -1700,9 +1700,9 @@ class Std_Library{
 				return 400;	
 			}
 		}
-		if($Database && !is_null($this->Id) && !is_null($this->_CI) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
-			$this->Id = $this->_CI->_INTERNAL_DATABASE_MODEL->Create($this);
-			return $this->Id;
+		if($Database && !is_null($this->id) && !is_null($this->_CI) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
+			$this->id = $this->_CI->_INTERNAL_DATABASE_MODEL->Create($this);
+			return $this->id;
 		}
 	}
 

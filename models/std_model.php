@@ -155,7 +155,7 @@ class Std_Model extends CI_Model{
 	public function Link($Table = NULL,$Link = NULL,&$Class = NULL,$Select = NULL){
 		if(!is_null($Table) && !is_null($Link) && !is_null($Class) && is_array($Link)){
 			if(is_null($Select)){
-				$Select = "Id";
+				$Select = "id";
 			}
 			if(is_array($Select)){
 				$Select = implode(",", $Select);
@@ -192,7 +192,7 @@ class Std_Model extends CI_Model{
 	 */
 	private function Exists($Id = NULL,$Table = NULL){
 		if(!is_null($Id) && !is_null($Table) && !is_array($Id)){
-			$Query = $this->db->where(array("Id" => $Id))->get($Table);
+			$Query = $this->db->where(array("id" => $Id))->get($Table);
 			if(!is_null($Query) && $Query->num_rows() == 0){
 				return false;
 			}
@@ -207,7 +207,7 @@ class Std_Model extends CI_Model{
 	/**
 	 * This function loads class data from the database table,
 	 * and assign it to the object in $Class
-	 * @param integer $Id    An optional database id for the row, if it's not deffined the $Class->Id will be used.
+	 * @param integer $Id    An optional database id for the row, if it's not deffined the $Class->id will be used.
 	 * @param object &$Class The class to assign the data too
 	 * @return boolean If there's data available and it's loaded true is returned else is false returned
 	 * @access public
@@ -216,10 +216,10 @@ class Std_Model extends CI_Model{
 	public function Load($Id = NULL,&$Class = NULL){
 		if(!is_null($Class) && property_exists(get_class($Class), "Database_Table")){
 			if(!is_null($Id)){
-				$Class->Id = $Id;
+				$Class->id = $Id;
 			}
-			if(!is_null($Class->Id) && self::Exists($Class->Id,$Class->Database_Table)){
-				$ClassQuery = $this->db->get_where($Class->Database_Table,array("Id" => $Class->Id));
+			if(!is_null($Class->id) && self::Exists($Class->id,$Class->Database_Table)){
+				$ClassQuery = $this->db->get_where($Class->Database_Table,array("id" => $Class->id));
 				foreach($ClassQuery->result() as $Row){
 					foreach ($Row as $Key => $Value) {
 						if(property_exists($this,"_INTERNAL_ROW_NAME_CONVERT") 
@@ -287,18 +287,18 @@ class Std_Model extends CI_Model{
 	public function Save(&$Class = NULL){
 		if( property_exists($Class, "Database_Table")){
 			self::_Data_Exists($Class);
-			if((isset($Class->Id) || isset($Class->id)) && self::Exists($Class->Id,$Class->Database_Table)){
+			if((isset($Class->id) || isset($Class->id)) && self::Exists($Class->id,$Class->Database_Table)){
 				$Data = $Class->Export(true);
 				if(property_exists($Class, "Database_Table") && count($Data) > 0){
-					$this->db->where(array('Id' => $Class->Id))->update($Class->Database_Table, self::Convert_Properties_To_Database_Row($Data,$Class));
+					$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::Convert_Properties_To_Database_Row($Data,$Class));
 					return true; //Maybe a check for mysql errors
 				} else {
 					return false;
 				}
 			}
 			else{
-				if(isset($Class->Id)){
-					$Id = $Class->Id;
+				if(isset($Class->id)){
+					$Id = $Class->id;
 				} else if($Class->id){
 					$Id = $Class->id;
 				} else {	
@@ -311,7 +311,7 @@ class Std_Model extends CI_Model{
 						if(property_exists($Class, "id")){
 							$Class->id = $this->db->insert_id();
 						} else {
-							$Class->Id = $this->db->insert_id();
+							$Class->id = $this->db->insert_id();
 						}
 						return true; //Maybe a check for mysql errors?
 					} else {
@@ -335,14 +335,14 @@ class Std_Model extends CI_Model{
 		if(!is_null($Class)){
 			$Data = $Class->Export(true);
 			$Data = self::Convert_Properties_To_Database_Row($Data);
-			if(is_null($Class->Id)){
+			if(is_null($Class->id)){
 				$Query = $this->db->limit(1)->get_where($Class->$Database_Table,$Data);
 			} else {
-				$Query = $this->db->not_like("Id",$Class->Id)->limit(1)->get_where($Class->$Database_Table,$Data);
+				$Query = $this->db->not_like("id",$Class->id)->limit(1)->get_where($Class->$Database_Table,$Data);
 			}
 			if($Query->num_rows() > 0){
 				foreach ($Query->result() as $Row) {
-					return $Row->$Id;
+					return $Row->$id;
 				}
 			}
 		}
@@ -379,11 +379,11 @@ class Std_Model extends CI_Model{
 		if(!is_null($Class)){
 			$Data = $Class->Export(true);
 			$Data = self::Convert_Properties_To_Database_Row($Data);
-			if(is_null($Class->Id)){
+			if(is_null($Class->id)){
 				$Query = $this->db->limit(1)->get_where($Class->$Database_Table,$Data);
 			} else {
 				if(self::_Check_For_Data_Dublicate($Class)){
-					$Query = $this->db->not_like("Id",$Class->Id)->limit(1)->get_where($Class->$Database_Table,$Data);
+					$Query = $this->db->not_like("id",$Class->id)->limit(1)->get_where($Class->$Database_Table,$Data);
 				} else {
 					$Query = NULL;
 				}
@@ -407,8 +407,8 @@ class Std_Model extends CI_Model{
 	private function _Data_Exists(&$Class = NULL){
 		if(!is_null($Class)){
 			if(self::_Has_Duplicate() != false){
-				if(property_exists($Class, "Id")){
-					$Class->Id = self::_Get_Duplicate_Id($Class);
+				if(property_exists($Class, "id")){
+					$Class->id = self::_Get_Duplicate_Id($Class);
 					return TRUE;
 				}
 			}
@@ -428,8 +428,8 @@ class Std_Model extends CI_Model{
 	 */
 	public function Match_Data(&$Class = NULL,$QueryData = NULL){
 		if(!is_null($QueryData) && !is_null($Class) && is_array($QueryData)){
-			if(isset($Class->Id)){
-				$QueryData["Id"] = "!= ".$Class->Id;
+			if(isset($Class->id)){
+				$QueryData["id"] = "!= ".$Class->id;
 			}
 			if(isset($Class->id)){
 				$QueryData["id"] = "!= ".$Class->id;
@@ -439,12 +439,12 @@ class Std_Model extends CI_Model{
 				$Query = $this->db->limit(1)->get_where($Class->Database_Table,$QueryData);
 				if($Query->num_rows() > 0){
 					foreach ($Query->result() as $Row) {
-						if(property_exists($Class, "Id")){
+						if(property_exists($Class, "id")){
 							if(!property_exists($Row, "id")){
-								$Class->Id = $Row->Id;
+								$Class->id = $Row->id;
 								return TRUE;
 							} else {
-								$Class->Id = $Row->id;
+								$Class->id = $Row->id;
 								return TRUE;
 							}
 						}
@@ -486,7 +486,7 @@ class Std_Model extends CI_Model{
             if(property_exists($Class, "id")){
             	$Select = "id";
             } else {
-            	$Select = "Id";
+            	$Select = "id";
             }
            if(count($Like) > 0){
                 $this->db->limit(1)->select($Select)->like($Like);
@@ -520,8 +520,8 @@ class Std_Model extends CI_Model{
 				$Raw = self::_Get_Query_Data($Data,$Table,$Class);
 				if($Raw->num_rows() > 0){
 					$Row = current($Raw->result());
-					if(isset($Row->Id)){
-						return $Row->Id;
+					if(isset($Row->id)){
+						return $Row->id;
 					} else {
 						return $Row->id;
 					}
