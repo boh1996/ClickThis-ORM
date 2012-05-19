@@ -64,9 +64,7 @@ class Std_Model extends CI_Model{
 		        		$this->_INTERNAL_ROW_NAME_CONVERT = $Names;
 		        	}
 		        	if(is_null($this->_INTERNAL_DATABASE_NAME_CONVERT)){
-		        		foreach ($Names as $Key => $Value) {
-		        			$this->_INTERNAL_DATABASE_NAME_CONVERT[$Value] = $Key;
-		        		}
+		        		$this->_INTERNAL_DATABASE_NAME_CONVERT = array_reverse($Names);
 		        	}
 		        break;
         	}
@@ -95,6 +93,38 @@ class Std_Model extends CI_Model{
     }
 
     /**
+     * This function gets or creates a convertion table if any data is existing
+     * @param object $Object The object to create from
+     * @param string $Type   The tpye "Database" or "Row"
+     * @since 1.0
+     * @access private
+     * @return array
+     */
+    private function _Create_Conversion_Table($Object,$Type = "Database"){
+    	if(is_object($Object)){
+    		if($Type == "Database"){
+    			if(isset($Object->_INTERNAL_DATABASE_NAME_CONVERT) && is_array($Object->_INTERNAL_DATABASE_NAME_CONVERT)){
+    				return $Object->_INTERNAL_DATABASE_NAME_CONVERT;
+    			} else if(isset($Object->_INTERNAL_ROW_NAME_CONVERT) && is_array($Object->_INTERNAL_ROW_NAME_CONVERT)){
+    				return array_flip($Object->_INTERNAL_ROW_NAME_CONVERT);
+    			} else {
+    				return array();
+    			}
+    		} else {
+    			if(isset($Object->_INTERNAL_ROW_NAME_CONVERT) && is_array($Object->_INTERNAL_ROW_NAME_CONVERT)){
+    				return $Object->_INTERNAL_ROW_NAME_CONVERT;
+    			} else if(isset($Object->_INTERNAL_DATABASE_NAME_CONVERT) && is_array($Object->_INTERNAL_DATABASE_NAME_CONVERT)){
+    				return array_flip($Object->_INTERNAL_DATABASE_NAME_CONVERT);
+    			} else {
+    				return array();
+    			}
+    		}
+    	} else {
+    		return array();
+    	}
+    }
+
+    /**
 	 * This function uses the internal _INTERNAL_DATABASE_NAME_CONVERT to convert the property names,
 	 * to the database row names
 	 * @param array $Data The exported data, from the class
@@ -107,10 +137,11 @@ class Std_Model extends CI_Model{
 	 */
 	private function Convert_Properties_To_Database_Row($Data = NULL,&$Class = NULL){
 		if(!is_null($Data) && !is_null($Class)){
-			if(isset($Object->_INTERNAL_DATABASE_NAME_CONVERT) || isset($this->_INTERNAL_DATABASE_NAME_CONVERT)){
+			$Table = self::_Create_Conversion_Table($Class);
+			if(count($Table) > 0){
 				$Array = array();
 				foreach ($Data as $Key => $Value) {
-					$Array[self::_Get_Database_Row_Name($Class,$Key)] = $Value;
+					$Array[self::_Get_Database_Row_Name($Class,$Key,$Table)] = $Value;
 				}
 				return $Array;
 			} else {
@@ -125,15 +156,21 @@ class Std_Model extends CI_Model{
 	 * This function converts the class properties to database row names
 	 * @param object $Object The object that is going to be converted
 	 * @param string $Key    Thd class property to convert
+	 * @param array $Table Conversion table
 	 * @since 1.1
 	 * @access private
 	 * @return string
 	 */
-	private function _Get_Database_Row_Name($Object = NULL,$Key = NULL){
-		if(!is_null($Object) && isset($Object->_INTERNAL_DATABASE_NAME_CONVERT) && array_key_exists($Key, $Object->_INTERNAL_DATABASE_NAME_CONVERT)){
-			return $Object->_INTERNAL_DATABASE_NAME_CONVERT[$Key];
-		} else if(isset($this->_INTERNAL_DATABASE_NAME_CONVERT) && array_key_exists($Key, $this->_INTERNAL_DATABASE_NAME_CONVERT)){
-			return $this->_INTERNAL_DATABASE_NAME_CONVERT[$Key];
+	private function _Get_Database_Row_Name($Object = NULL,$Key = NULL,$Table = NULL){
+		if(is_null($Table) || !is_array($Table)){
+			$Table = self::_Create_Conversion_Table($Class);
+		}
+		if(is_array($Table) && count($Table) > 0){
+			if(array_key_exists($Key, $Table)){
+				return $Table[$Key];
+			} else {
+				return $Key;
+			}
 		} else {
 			return $Key;
 		}
@@ -332,7 +369,7 @@ class Std_Model extends CI_Model{
 	 * @access private
 	 */
 	private function _Get_Dublicate_Id(&$Class = NULL){
-		if(!is_null($Class)){
+		if(is_object($Class)){
 			$Data = $Class->Export(true);
 			$Data = self::Convert_Properties_To_Database_Row($Data);
 			if(is_null($Class->id)){

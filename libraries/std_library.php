@@ -34,6 +34,18 @@ class Std_Library{
 	public static $_INTERNAL_DATABASE_NAME_CONVERT = NULL;
 
 	/**
+	 * This array contains the properties that contain classes,
+	 * that is going to be saved before the parent
+	 * @var array
+	 * @since 1.0
+	 * @access public
+	 * @static
+	 * @example
+	 * $_INTERNAL_SAVE_THESE_CHILDS_FIRST = array("Property Name");
+	 */
+	public static $_INTERNAL_SAVE_THESE_CHILDS_FIRST = NULL;
+
+	/**
 	 * This property can contain properties to be ignored when exporting
 	 * @var array
 	 * @access public
@@ -565,6 +577,59 @@ class Std_Library{
 	}
 
 	/**
+	 * This function merges the internal data with the input data
+	 * @param string  $Property The class property to import too
+	 * @param array|integer|string  $Input    The input data
+	 * @param boolean $Override If the existing data is going to be overwritten
+	 * @since 1.2
+	 * @access private
+	 */
+	private function _Merge_Array ($Property, $Input ,$Override = false) {
+		if(property_exists($this, $Property)){
+			if(is_array($Input) && !is_null($Input)){
+				if($Override){
+					$this->{$Property} = $Input;
+				} else {
+					if(!is_null($this->{$Property}) && is_array($this->{$Property})){
+						$this->{$Property} = array_merge($this->{$Property},$Input);
+					} else if(!is_null($this->{$Property})) {
+						$this->{$Property} = array_merge(array($this->{$Property}),$Input);
+					} else if(!is_null($Input)){
+						$this->{$Property} = $Input;
+					}
+				}
+			} else if(!is_null($Input)){
+				if(is_array($this->{$Property}) && !$Override){
+					$this->{$Property} = array_merge($this->{$Property},array($Input));
+				} else {
+					$this->{$Property} = $Input;
+				}
+			}
+		}
+	}
+
+	/**
+	 * This function checks if any key are a integer in type
+	 * @since 1.0
+	 * @access private
+	 * @param array|integer|string $Input The input to check
+	 * @return boolean
+	 */
+	private function _Has_Interger_Keys($Input = NULL){
+		if(!is_null($Input) && is_array($Input)){
+			$HasInteger = FALSE;
+			foreach ($Input as $Key => $Value) {
+				if(is_integer($Key)){
+					$HasInteger = TRUE;
+				}
+			}
+			return $HasInteger;
+		} else {
+			return is_integer($Input);
+		}
+	}
+
+	/**
 	 * This function imports data from an array with the same key name as the local property to import too.
 	 * @param array $Array The data to import in Name => Value format
 	 * @param boolean $Override If this flag is set to true, then if the data is an array the clas $s data is overridden
@@ -574,39 +639,58 @@ class Std_Library{
 	 */
 	public function Import($Array = NULL,$Override = false,$Secure = false){
 		if(!is_null($Array) && is_array($Array)){
-			foreach($Array as $Name => $Value){
-				if(property_exists($this,$Name) && !self::_Secure_Ignore($Name,$Secure)){
-					if(!is_array($Value) && !is_array($Name) && strpos($Value, ";") == true){
-						if($Override == false){
-							if(is_array($this->{$Name})){
-								$this->{$Name} = array_merge($this->{$Name},explode(";", $Value));
+			foreach ($Array as $Property => $Value) {
+				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure)){
+					if(self::_Has_Load_From_Class($Property)){
+						$ClassName = self::_Get_Load_From_Class_Data($Property);
+						$this->_CI->load->library($ClassName);
+						if (is_array($Value)) {
+							if(self::_Has_Interger_Keys($Value)){
+								$Temp = array();
+								foreach ($Value as $Key => $SubContent) {
+									if(is_array($SubContent) && self::_Has_Interger_Keys($SubContent)){
+										//Not Sure		
+									} else if(is_array($SubContent)){
+										$Object = new $ClassName();
+										if(method_exists($Object, "Import")){
+											$Object->Import($Value);
+											self::_Merge_Array($Property,$Object,$Override);
+										} else {
+											self::_Merge_Array($Property,$SubContent,$Override);
+										}
+									} else if(is_integer($SubContent)){
+										$Temp[] = $SubContent;
+									} else if(!is_null($SubContent)){ // Could be an error
+										$Temp[] = $SubContent;
+									}
+								}
+								self::_Merge_Array($Property,$Temp,$Override);
 							} else {
-								$this->$Name = explode(";", $Value);
+								$Object = new $ClassName();
+								if(method_exists($Object, "Import")){
+									$Object->Import($Value);
+									self::_Merge_Array($Property,$Object,$Override);
+								} else {
+									self::_Merge_Array($Property,$Value,$Override);
+								}
 							}
-						} else {
-							$this->$Name = explode(";", $Value);
+						} else if (is_integer($Value)) {
+							$this->{$Property} = $Value;
+						} else if(!is_null($Value)){ //Can be an error, build for later use
+							$this->{$Property} = $Value;
 						}
 					} else {
-						if(self::_Has_Load_From_Class($Name) && is_array($Value) && self::_Has_Sub_Array($Value)){
-							self::_Sub_Import($Value,$Name,$Override);
-						} else {
-							if(!is_integer($Value) && self::_Has_Load_From_Class($Name) && (self::_Has_Sub_Array($Value) || self::_Has_Sub_Array($Name))){
-								self::_Sub_Import($Value,$Name,$Override);
-							} else {
-								$this->{$Name} = $Value;
-							}
-						}	
+						self::_Merge_Array($Property,$Value,$Override);
 					}
 				}
 			}
-			/*foreach ($variable as $key => $value) {
-				# code...
-			}*/
-			self::_Force_Array();
-			self::_Load_From_Class();
 		} else {
 			return FALSE;
 		}
+		self::_Load_From_Class();
+		self::_Force_Array();
+		self::_Convert_To_Boolean();
+		return TRUE;
 	}
 
 	/**
@@ -615,6 +699,7 @@ class Std_Library{
 	 * @param array $Array    The input data to use
 	 * @param string $Property The class property to save the data in
 	 * @param boolean $Overwrite If the data is going to be overwritten or not
+	 * @deprecated As of version 1.2 is this function deprecated
 	 */
 	private function _Sub_Import($Array = NULL,$Property = NULL,$Overwrite = false){
 		if(!is_null($Array) && !is_null($Property)){
@@ -783,6 +868,40 @@ class Std_Library{
 	}
 
 	/**
+	 * This function checks if a property isset
+	 * @param string $Property The property to chech
+	 * @param object $Object   The object to check in, default is $this
+	 * @since 1.2
+	 * @access private
+	 * @return boolean
+	 */
+	private function _Isset($Property = NULL,$Object = NULL){
+		if(is_null($Object)){
+			$Object = $this;
+		}
+		if(property_exists($Object, $Property) && isset($this->{$Property}) && !is_null($this->{$Property}) && !empty($this->{$Property})){
+			return TRUE;
+		} else {
+			return FALSE;
+		}
+	}
+
+	/**
+	 * This function checks if a node in _INTERNAL_SAVE_THESE_CHILDS_FIRST is existing for that property
+	 * @param string $Property The property to check for
+	 * @since 1.2
+	 * @return boolean
+	 * @access private
+	 */
+	private function _Save_Before_Parent($Property = NULL){
+		if(!is_null($Property) && property_exists($this, $Property) && self::_Isset("_INTERNAL_SAVE_THESE_CHILDS_FIRST")){
+			return in_array($Property, $this->_INTERNAL_SAVE_THESE_CHILDS_FIRST);
+		} else {
+			return FALSE;
+		}
+	}
+
+	/**
 	 * This function loops through the _INTERNAL_LOAD_FROM_CLASS properties,
 	 * if there's some extra information set in _INTERNAL_SAVE_LINK, that needs to be assigned
 	 * to the object(s) then it's done, and the Save method is called on the child objects
@@ -792,7 +911,7 @@ class Std_Library{
 	private function _Save_ChildClasses_Properties(){
 		if(property_exists($this, "_INTERNAL_LOAD_FROM_CLASS") && isset($this->_INTERNAL_LOAD_FROM_CLASS) && !is_null($this->_INTERNAL_LOAD_FROM_CLASS) && is_array($this->_INTERNAL_LOAD_FROM_CLASS)){
 			foreach ($this->_INTERNAL_LOAD_FROM_CLASS as $Property => $ClassName) {
-				if(!is_null($Property) && !self::_Is_Linked_Property($Property) && property_exists($this, $Property)){
+				if(!is_null($Property) && !self::_Is_Linked_Property($Property) && property_exists($this, $Property) && !self::_Save_Before_Parent($Property)){
 					if(is_array($this->{$Property})){
 						foreach ($this->{$Property} as $Key => $Object) {
 							if(gettype($Object) == "object"){
@@ -1003,6 +1122,31 @@ class Std_Library{
 	}
 
 	/**
+	 * This function saves the childrens that are supposed to be saved before the parent
+	 * @since 1.2
+	 * @access private
+	 */
+	private function _Save_Childrens_Before(){
+		if(self::_Isset("_INTERNAL_SAVE_THESE_CHILDS_FIRST")){
+			foreach ($this->_INTERNAL_SAVE_THESE_CHILDS_FIRST as $Property) {
+				if(self::_Has_Load_From_Class($Property)){
+					if(is_array($this->{$Property})){
+						foreach ($this->{$Property} as $Object) {
+							if(is_object($Object) && method_exists($Object, "Save")){
+								$Object->Save();
+							}
+						}
+					} else {
+						if(is_object($this->{$Property}) && method_exists($this->{$Property}, "Save")){
+							$this->{$Property}->Save();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * This function saves the local class data to the database row of the Id property
 	 * @return string This function can return a error string
 	 * @todo Make the linked properties be saved to, and with the an updated id, etc SeriesId = $this->id
@@ -1012,6 +1156,7 @@ class Std_Library{
 	public function Save() {
 		if(!is_null($this->_CI) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL) ){
 			if(self::_Not_Allowed_Dublicate_Rows() === false){
+				self::_Save_Childrens_Before();
 				$this->_CI->_INTERNAL_DATABASE_MODEL->Save($this);		
 				self::_Save_Linked_Properties();
 				self::_Save_ChildClasses_Properties();
@@ -1380,20 +1525,25 @@ class Std_Library{
 						&& array_key_exists($Name, $this->_INTERNAL_DATABASE_NAME_CONVERT)
 						&& !is_null($this->_INTERNAL_DATABASE_NAME_CONVERT)) {
 						//If the data is an array implode it with a ";" sign else just assign it
-						if(!is_null($Data) && is_array($Data) && count($Data) > 0){
+						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && $Data != "NULL"){
 							$String = ";";
 							$String .= implode(";",$Data);
 							$String .= ";";
-							$Array[$this->_INTERNAL_DATABASE_NAME_CONVERT[$Name]] = $String;
-						} else {
+							$String = str_replace(";NULL", "", $String);
+							if($String != "" && $String != ";"){
+								$Array[$this->_INTERNAL_DATABASE_NAME_CONVERT[$Name]] = $String;
+							}
+						} else if(!is_null($Data) && $Data != "NULL"){
 							$Array[$this->_INTERNAL_DATABASE_NAME_CONVERT[$Name]] = $Data;
 						}
 					} else {
-						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && !self::_Contains_Object($Data)){
+						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && !self::_Contains_Object($Data) && $Data != "NULL"){
 							$String = ";".implode(";",$Data).";";
-							$Array[$Name] = $String;
-
-						} else {
+							$String = str_replace(";NULL", "", $String);
+							if($String != "" && $String != ";"){
+								$Array[$Name] = $String;
+							}
+						} else if(!is_null($Data) && $Data != "NULL"){
 							$Array[$Name] = $Data;
 						}
 					}
