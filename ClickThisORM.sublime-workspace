@@ -523,7 +523,7 @@
 			"file": "libraries/std_library.php",
 			"settings":
 			{
-				"buffer_size": 56805,
+				"buffer_size": 58937,
 				"line_ending": "Windows"
 			}
 		}
@@ -921,15 +921,15 @@
 					"file": "libraries/std_library.php",
 					"settings":
 					{
-						"buffer_size": 56805,
+						"buffer_size": 58937,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								394,
+								394
 							]
 						],
 						"settings":
@@ -940,7 +940,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 9630.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
