@@ -272,8 +272,15 @@ class Std_Library{
 	 */
 	public function Load($Id = NULL,$Simple = false) {
 		$Arguments = func_get_args();
-		unset($Arguments[0]);
-		unset($Arguments[1]);
+		if(is_null($Arguments)){
+			$Arguments = array();
+		}
+		if(isset($Arguments[0])){
+				unset($Arguments[0]);
+		}
+		if(isset($Arguments[1])){
+			unset($Arguments[1]);
+		}
 		if(!is_null($Id)){
 			$this->id = $Id;
 		}
@@ -291,7 +298,7 @@ class Std_Library{
 		}
 		self::_Load_Link();
 		self::_Link_Properties();
-		self::_Load_From_Class($Simple,$Arguments);
+		self::_Load_From_Class($Simple, $Arguments);
 		self::_Force_Array();
 		self::_Convert_To_Boolean();
 		return TRUE;
@@ -445,10 +452,8 @@ class Std_Library{
 						//If the CodeIgniter instance exists and isn't null, then load the library
 						if(property_exists($this, "_CI") && !is_null($this->_CI)){
 							@$this->_CI->load->library($ClassName);
-						} else {
-							return FALSE;
 						}
-						if(!is_null($this->{$Key}) && $this->{$Key} != ""){
+						if(!is_null($this->{$Key}) && $this->{$Key} != "" && class_exists($ClassName)){
 							//If the property is an array and it contains data, then make the output an array of objects
 							if(is_array($this->{$Key}) && count($this->{$Key}) > 0){
 								$Temp = array();
