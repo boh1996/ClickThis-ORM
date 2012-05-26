@@ -523,7 +523,7 @@
 			"file": "libraries/std_library.php",
 			"settings":
 			{
-				"buffer_size": 58937,
+				"buffer_size": 59053,
 				"line_ending": "Windows"
 			}
 		}
@@ -921,15 +921,15 @@
 					"file": "libraries/std_library.php",
 					"settings":
 					{
-						"buffer_size": 58937,
+						"buffer_size": 59053,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								394,
-								394
+								0,
+								0
 							]
 						],
 						"settings":
