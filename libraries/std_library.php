@@ -604,8 +604,12 @@ class Std_Library{
 					}
 				}
 			} else if(!is_null($Input)){
-				if(is_array($this->{$Property}) && !$Override){
-					$this->{$Property} = array_merge($this->{$Property},array($Input));
+				if(!is_null($this->{$Property}) && !$Override){
+					if(is_array($this->{$Property})){
+						$this->{$Property} = array_merge($this->{$Property},array($Input));
+					} else {
+						$this->{$Property} = array_merge(array($this->{$Property}),array($Input));
+					}
 				} else {
 					$this->{$Property} = $Input;
 				}
@@ -651,25 +655,29 @@ class Std_Library{
 						$this->_CI->load->library($ClassName);
 						if (is_array($Value)) {
 							if(self::_Has_Interger_Keys($Value)){
-								$Temp = array();
-								foreach ($Value as $Key => $SubContent) {
-									if(is_array($SubContent) && self::_Has_Interger_Keys($SubContent)){
-										//Not Sure		
-									} else if(is_array($SubContent)){
-										$Object = new $ClassName();
-										if(method_exists($Object, "Import")){
-											$Object->Import($Value);
-											self::_Merge_Array($Property,$Object,$Override);
-										} else {
-											self::_Merge_Array($Property,$SubContent,$Override);
+								if(self::_Has_Sub_Array($Value)){
+									$Temp = array();
+									foreach ($Value as $Key => $SubContent) {
+										if(is_array($SubContent) && self::_Has_Interger_Keys($SubContent)){
+											//Not Sure		
+										} else if(is_array($SubContent)){
+											$Object = new $ClassName();
+											if(method_exists($Object, "Import")){
+												$Object->Import($SubContent);
+												self::_Merge_Array($Property,$Object,$Override);
+											} else {
+												self::_Merge_Array($Property,$SubContent,$Override);
+											}
+										} else if(is_integer($SubContent)){
+											$Temp[] = $SubContent;
+										} else if(!is_null($SubContent)){ // Could be an error
+											$Temp[] = $SubContent;
 										}
-									} else if(is_integer($SubContent)){
-										$Temp[] = $SubContent;
-									} else if(!is_null($SubContent)){ // Could be an error
-										$Temp[] = $SubContent;
 									}
+									self::_Merge_Array($Property,$Temp,$Override);
+								} else {
+									self::_Merge_Array($Property,$Value,$Override);
 								}
-								self::_Merge_Array($Property,$Temp,$Override);
 							} else {
 								$Object = new $ClassName();
 								if(method_exists($Object, "Import")){
