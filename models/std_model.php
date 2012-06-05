@@ -64,7 +64,7 @@ class Std_Model extends CI_Model{
 		        		$this->_INTERNAL_ROW_NAME_CONVERT = $Names;
 		        	}
 		        	if(is_null($this->_INTERNAL_DATABASE_NAME_CONVERT)){
-		        		$this->_INTERNAL_DATABASE_NAME_CONVERT = array_reverse($Names);
+		        		$this->_INTERNAL_DATABASE_NAME_CONVERT = array_flip($Names);
 		        	}
 		        break;
         	}
