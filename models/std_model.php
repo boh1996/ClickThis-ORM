@@ -325,6 +325,11 @@ class Std_Model extends CI_Model{
 		if( property_exists($Class, "Database_Table")){
 			self::_Data_Exists($Class);
 			if((isset($Class->id) || isset($Class->id)) && self::Exists($Class->id,$Class->Database_Table)){
+
+				if (method_exists($Class, "Data_Updated")) {
+					$Class->Data_Updated();
+				}
+				
 				$Data = $Class->Export(true);
 				if(property_exists($Class, "Database_Table") && count($Data) > 0){
 					$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::Convert_Properties_To_Database_Row($Data,$Class));
@@ -332,8 +337,7 @@ class Std_Model extends CI_Model{
 				} else {
 					return false;
 				}
-			}
-			else{
+			} else{
 				if(isset($Class->id)){
 					$Id = $Class->id;
 				} else if($Class->id){
@@ -342,6 +346,15 @@ class Std_Model extends CI_Model{
 					$Id = NULL;
 				}
 				if(!self::Exists($Id)){
+
+					if (method_exists($Class, "Data_Updated")) {
+						$Class->Data_Updated();
+					}
+
+					if (method_exists($Class, "Data_Created")) {
+						$Class->Data_Created();
+					}
+					
 					$Data = $Class->Export(true);
 					if(!is_null($Data) && !is_null($Class) && count($Data) > 0){
 						$this->db->insert($Class->Database_Table, self::Convert_Properties_To_Database_Row($Data,$Class));

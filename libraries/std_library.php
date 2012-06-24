@@ -222,6 +222,55 @@ class Std_Library{
 	public static $_INTERNAL_CONVERT_TO_BOOLEAN = NULL;
 
 	/**
+	 * If this property is set to true and a dublicate is found, the dublicate is overwritten
+	 * @since 1.0
+	 * @access public
+	 * @var boolean
+	 */
+	public static $_INTERNAL_OVERWRITE_ON_DUBLICATE = false;
+
+	/**
+	 * An array containing the property(ies) that is going to be filled with the timestamp of the last 
+	 * save operation
+	 * @since 1.21
+	 * @access public
+	 * @var array|string
+	 */
+	public static $_INTERNAL_LAST_UPDATED_PROPERTY = NULL;
+
+	/**
+	 * The property(ies) which is going to be filled with the timestamp of the first save
+	 * @var array|string
+	 * @since 1.21
+	 * @access public
+	 */
+	public static $_INTERNAL_CREATED_TIME_PROPERTY = NULL;
+
+	/**
+	 * The property(ies) to fill with the user that has created the data
+	 * @since 1.21
+	 * @access public
+	 * @var array|string
+	 */
+	public static $_INTERNAL_CREATED_USER_PROPERTY = NULL;
+
+	/**
+	 * The property(ies) to fill with the user that has last updated the data
+	 * @since 1.21
+	 * @access public
+	 * @var array|string
+	 */
+	public static $_INTERNAL_LAST_UPDATED_USER_PROPERTY = NULL;
+
+	/**
+	 * A property to store the current user
+	 * @since 1.21
+	 * @access public
+	 * @var integer
+	 */
+	public static $_INTERNAL_CURRENT_USER = NULL;
+
+	/**
 	 * This property will contain a local instance of CodeIgniter,
 	 * if the children set's it
 	 * @var object
@@ -236,6 +285,118 @@ class Std_Library{
 	 * @since 1.0
 	 */
 	public function Std_Library(){
+	}
+
+	/**
+	 * A function 
+	 * @param integer $User The user id of the current user
+	 * @since 1.21
+	 * @access public
+	 */
+	public function Set_Current_User ( $User = NULL ) {
+		if (!is_null($User)) {
+			$this->_INTERNAL_CURRENT_USER = (int)$User;
+		}
+	}
+
+	/**
+	 * This function is called from the model save function when the data is updated
+	 * @since 1.21
+	 * @access public
+	 */
+	public function Data_Updated () {
+		if (self::_Isset("_INTERNAL_LAST_UPDATED_PROPERTY")) {
+			if (is_array($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
+				foreach ($this->_INTERNAL_LAST_UPDATED_PROPERTY as $Property) {
+					if (property_exists($this, $Property)) {
+						$this->{$Property} = time();
+					}
+				}
+			} else if (is_string($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
+				if (property_exists($this, $this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
+					$this->{$this->_INTERNAL_LAST_UPDATED_PROPERTY} = time();
+				}
+			}
+		}
+
+		if (self::_Isset("_INTERNAL_LAST_UPDATED_USER_PROPERTY") && !is_null($this->_INTERNAL_CURRENT_USER)) {
+			if (is_array($this->_INTERNAL_LAST_UPDATED_USER_PROPERTY)) {
+				foreach ($this->_INTERNAL_LAST_UPDATED_USER_PROPERTY as $Property) {
+					if (property_exists($this, $Property)) {
+						$this->{$Property} = $this->_INTERNAL_CURRENT_USER;
+					}
+				}	
+			} else if(is_string($this->_INTERNAL_LAST_UPDATED_USER_PROPERTY)) {
+				if (property_exists($this, $this->_INTERNAL_LAST_UPDATED_USER_PROPERTY)) {
+					$this->{$this->_INTERNAL_LAST_UPDATED_USER_PROPERTY} = $this->_INTERNAL_CURRENT_USER;
+				}
+			}
+		}
+	}
+
+	/**
+	 * This function is called from the model save function,
+	 * when the data is created
+	 * @since 1.21
+	 * @access public
+	 */
+	public function Data_Created () {
+		if (self::_Isset("_INTERNAL_LAST_UPDATED_PROPERTY")) {
+			if (is_array($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
+				foreach ($this->_INTERNAL_LAST_UPDATED_PROPERTY as $Property) {
+					if (property_exists($this, $Property)) {
+						$this->{$Property} = time();
+					}
+				}
+			} else if (is_string($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
+				if (property_exists($this, $this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
+					$this->{$this->_INTERNAL_LAST_UPDATED_PROPERTY} = time();
+				}
+			}
+		}
+
+		if (self::_Isset("_INTERNAL_CREATED_TIME_PROPERTY")) {
+			if (is_array($this->_INTERNAL_CREATED_TIME_PROPERTY)) {
+				foreach ($this->_INTERNAL_CREATED_TIME_PROPERTY as $Property) {
+					if (property_exists($this, $Property)) {
+						$this->{$Property} = time();
+					}
+				}
+			} else if ($this->_INTERNAL_CREATED_TIME_PROPERTY) {
+				if (property_exists($this, $this->_INTERNAL_CREATED_TIME_PROPERTY)) {
+					$this->{$this->_INTERNAL_CREATED_TIME_PROPERTY} = time();
+				}
+			}
+		}
+
+		if (self::_Isset("_INTERNAL_LAST_UPDATED_USER_PROPERTY") && !is_null($this->_INTERNAL_CURRENT_USER)) {
+			if (is_array($this->_INTERNAL_LAST_UPDATED_USER_PROPERTY)) {
+				foreach ($this->_INTERNAL_LAST_UPDATED_USER_PROPERTY as $Property) {
+					if (property_exists($this, $Property)) {
+						$this->{$Property} = $this->_INTERNAL_CURRENT_USER;
+					}
+				}	
+			} else if(is_string($this->_INTERNAL_LAST_UPDATED_USER_PROPERTY)) {
+				if (property_exists($this, $this->_INTERNAL_LAST_UPDATED_USER_PROPERTY)) {
+					$this->{$this->_INTERNAL_LAST_UPDATED_USER_PROPERTY} = $this->_INTERNAL_CURRENT_USER;
+				}
+			}
+		}
+
+		if (self::_Isset("_INTERNAL_CREATED_USER_PROPERTY") && !is_null($this->_INTERNAL_CURRENT_USER)) {
+			if (is_array($this->_INTERNAL_CREATED_USER_PROPERTY)) {
+				foreach ($this->_INTERNAL_CREATED_USER_PROPERTY as $Property) {
+					if (property_exists($this, $Property)) {
+						$this->{$Property} = $this->_INTERNAL_CURRENT_USER;
+					}
+				}	
+			} else if (is_string($this->_INTERNAL_CREATED_USER_PROPERTY)) {
+				if (property_exists($this, $this->_INTERNAL_CREATED_USER_PROPERTY)) {
+					$this->{$this->_INTERNAL_CREATED_USER_PROPERTY} = $this->_INTERNAL_CURRENT_USER;
+				}
+			}
+
+		}
 	}
 
 	/**
@@ -291,7 +452,7 @@ class Std_Library{
 		} else {
 			$Id = NULL;
 		}
-		if(!is_null($Id) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
+		if(!is_null($Id) && isset($this->_CI->_INTERNAL_DATABASE_MODEL) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
 			if(!$this->_CI->_INTERNAL_DATABASE_MODEL->Load($Id,$this)){
 				return FALSE;
 			}
@@ -470,6 +631,10 @@ class Std_Library{
 												$Pass = call_user_func_array("self::_Merge_Arguments", array_merge($Pass,$Arguments));
 											}
 											$Object = new $ClassName();
+
+											if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+												$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+											}
 											if(call_user_func_array(array($Object,"Load"),$Pass)){
 												if(!is_null($Object)){
 													$Temp[] = $Object;
@@ -487,6 +652,9 @@ class Std_Library{
 								if(!is_null($this->{$Key})){
 									if(class_exists($ClassName) && gettype($this->{$Key}) != "object"){
 										$Object = new $ClassName();
+										if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+											$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+										}
 										$Pass = array($this->{$Key},$ChildSimple);
 										if(!is_null($Arguments) && count($Arguments) > 0){
 											$Pass = call_user_func_array("self::_Merge_Arguments", array_merge($Pass,$Arguments));
@@ -662,6 +830,9 @@ class Std_Library{
 											//Not Sure		
 										} else if(is_array($SubContent)){
 											$Object = new $ClassName();
+											if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+												$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+											}											
 											if(method_exists($Object, "Import")){
 												$Object->Import($SubContent);
 												self::_Merge_Array($Property,$Object,$Override);
@@ -680,6 +851,9 @@ class Std_Library{
 								}
 							} else {
 								$Object = new $ClassName();
+								if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+									$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+								}
 								if(method_exists($Object, "Import")){
 									$Object->Import($Value);
 									self::_Merge_Array($Property,$Object,$Override);
@@ -704,55 +878,6 @@ class Std_Library{
 		self::_Force_Array();
 		self::_Convert_To_Boolean();
 		return TRUE;
-	}
-
-	/**
-	 * This function loops through properties in the input an imports the data,
-	 * with the class' import function, if needed 
-	 * @param array $Array    The input data to use
-	 * @param string $Property The class property to save the data in
-	 * @param boolean $Overwrite If the data is going to be overwritten or not
-	 * @deprecated As of version 1.2 is this function deprecated
-	 */
-	private function _Sub_Import($Array = NULL,$Property = NULL,$Overwrite = false){
-		if(!is_null($Array) && !is_null($Property)){
-			$ClassName = self::_Get_Load_From_Class_Data($Property);
-			if(!is_null($ClassName)){
-				$Temp = array();
-				$Single = array();
-				foreach ($Array as $Key => $Data) {
-					if(is_array($Data)){
-						$this->_CI->load->library($ClassName);
-						$Class = new $ClassName();
-						if(!is_null($Class) && method_exists($Class, "Import")){
-							$Class->Import($Data,$Overwrite);
-						}
-						$Temp[] = $Class;
-					} else {
-						$Single[$Key] = $Data;
-					}
-				}
-				if(count($Single) > 0){
-						$this->_CI->load->library($ClassName);
-						$Class = new $ClassName();
-						if(!is_null($Class) && method_exists($Class, "Import")){
-							$Class->Import($Single,$Overwrite);
-						}
-						$Temp[] = $Class;
-				}
-				if(count($Temp) > 0 && property_exists($this, $Property)){
-					if(is_null($this->{$Property})){
-						$this->{$Property} = $Temp;
-					} else {
-						if(is_array($this->{$Property}) && !$Overwrite){
-							$this->{$Property} = array_merge($this->{$Property},$Temp); 
-						} else {
-							$this->{$Property} = $Temp;
-						}
-					}
-				}
-			}
-		}
 	}
 
 	/**
@@ -934,6 +1059,9 @@ class Std_Library{
 										self::_Set_Save_Link_Data($Save_Link_Data,$Object);
 									}
 								}
+								if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+									$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+								}
 								if(!is_null($Object) && method_exists($Object, "Save")){
 									$Object->Save();
 								}
@@ -949,6 +1077,9 @@ class Std_Library{
 								}
 							} else {
 								$Object = $this->{$Property};
+							}
+							if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+								$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
 							}
 							if(!is_null($Object) && method_exists($Object, "Save")){
 								$Object->Save();
@@ -1062,6 +1193,9 @@ class Std_Library{
 									self::_Set_Save_Link_Data($Save_Link_Data,$Object);
 								}
 							}
+							if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+								$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+							}
 							if(method_exists($Object, "Save")){
 								$Object->Save();
 							}
@@ -1076,6 +1210,9 @@ class Std_Library{
 									self::_Set_Save_Link_Data($Save_Link_Data,$Object);
 								}
 							}
+							if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+								$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+							}	
 							if(method_exists($Object, "Save")){
 								$Object->Save();
 							}
@@ -1100,6 +1237,20 @@ class Std_Library{
 			} else {
 				return FALSE;
 			}
+		} else {
+			return FALSE;
+		}
+	}
+
+	/**
+	 * This function returns the value of the _INTERNAL_OVERWRITE_ON_DUBLICATE property
+	 * @since 1.0
+	 * @access private
+	 * @return boolean
+	 */
+	private function _Overwrite_On_Dublicate () {
+		if (property_exists($this, "_INTERNAL_OVERWRITE_ON_DUBLICATE") && isset($this->_INTERNAL_OVERWRITE_ON_DUBLICATE)) {
+			return $this->_INTERNAL_OVERWRITE_ON_DUBLICATE;
 		} else {
 			return FALSE;
 		}
@@ -1145,11 +1296,17 @@ class Std_Library{
 				if(self::_Has_Load_From_Class($Property)){
 					if(is_array($this->{$Property})){
 						foreach ($this->{$Property} as $Object) {
+							if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+								$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+							}
 							if(is_object($Object) && method_exists($Object, "Save")){
 								$Object->Save();
 							}
 						}
 					} else {
+						if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($this->{$Property},"Set_Current_User")) {
+							$this->{$Property}->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+						}
 						if(is_object($this->{$Property}) && method_exists($this->{$Property}, "Save")){
 							$this->{$Property}->Save();
 						}
@@ -1167,8 +1324,8 @@ class Std_Library{
 	 * @access public
 	 */
 	public function Save() {
-		if(!is_null($this->_CI) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL) ){
-			if(self::_Not_Allowed_Dublicate_Rows() === false){
+		if(isset($this->_CI) && !is_null($this->_CI) && isset($this->_CI->_INTERNAL_DATABASE_MODEL) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL) ){
+			if(self::_Not_Allowed_Dublicate_Rows() === false || self::_Overwrite_On_Dublicate() === true){
 				self::_Save_Childrens_Before();
 				$this->_CI->_INTERNAL_DATABASE_MODEL->Save($this);		
 				self::_Save_Linked_Properties();

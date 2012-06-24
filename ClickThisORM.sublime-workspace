@@ -4,6 +4,26 @@
 		"selected_items":
 		[
 			[
+				"_INTERNAL_CURR",
+				"_INTERNAL_CURRENT_USER"
+			],
+			[
+				"_INTERNAL_CREATE",
+				"_INTERNAL_CREATED_USER_PROPERTY"
+			],
+			[
+				"_INTERNAL_LAST",
+				"_INTERNAL_LAST_UPDATED_USER_PROPERTY"
+			],
+			[
+				"_INTERNAL_CREA",
+				"_INTERNAL_CREATED_TIME_PROPERTY"
+			],
+			[
+				"proper",
+				"property_exists"
+			],
+			[
 				"Ch",
 				"ChildSimple"
 			],
@@ -494,26 +514,6 @@
 			[
 				"back",
 				"background	background-color: hex"
-			],
-			[
-				"font",
-				"font	font: size font"
-			],
-			[
-				"li",
-				"link	Tag"
-			],
-			[
-				"Request",
-				"Request_Format"
-			],
-			[
-				"Re",
-				"Response"
-			],
-			[
-				"Conte",
-				"Content_Type"
 			]
 		]
 	},
@@ -523,7 +523,15 @@
 			"file": "libraries/std_library.php",
 			"settings":
 			{
-				"buffer_size": 59053,
+				"buffer_size": 68208,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "models/std_model.php",
+			"settings":
+			{
+				"buffer_size": 18460,
 				"line_ending": "Windows"
 			}
 		}
@@ -705,6 +713,10 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"if (!is_null($this->_INTERNAL_CURRENT_USER)",
+			"if (!is_null($this->_INTERNAL_CURRENT_USER)) {",
+			"Set_Current",
+			"Time",
 			"Guedoe",
 			"stee",
 			"aSteeringwheel",
@@ -828,11 +840,7 @@
 			"us_jep_hmmwv",
 			"arg_apc_lvtp7",
 			"arg",
-			"seats_c.dds",
-			"path",
-			"texture",
-			" westfalia",
-			"westfalia"
+			"seats_c.dds"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -840,6 +848,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"if (!is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,\"Set_Current_User\") {",
 			"",
 			"arg_jep_westfalia",
 			"\",\\n\"",
@@ -921,7 +930,7 @@
 					"file": "libraries/std_library.php",
 					"settings":
 					{
-						"buffer_size": 59053,
+						"buffer_size": 68208,
 						"regions":
 						{
 						},
@@ -940,7 +949,36 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 31226.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "models/std_model.php",
+					"settings":
+					{
+						"buffer_size": 18460,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								10134,
+								10134
+							]
+						],
+						"settings":
+						{
+							"remote_loading": false,
+							"synced": false,
+							"syntax": "Packages/PHP/PHP.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 4755.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
