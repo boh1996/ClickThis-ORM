@@ -95,7 +95,7 @@ class Std_Library{
 	 * @example
 	 * $this->_CI->load->model("Std_Model","_INTERNAL_DATABASE_MODEL");
 	 */
-	public static $_INTERNAL_DATABASE_MODEL = NULL;
+	public $_INTERNAL_DATABASE_MODEL = NULL;
 
 	/**
 	 * This property is used to define class properties that should be filled with objects,
@@ -271,6 +271,14 @@ class Std_Library{
 	public static $_INTERNAL_CURRENT_USER = NULL;
 
 	/**
+	 * An array containing the fields to ignore when importing
+	 * @since 1.21
+	 * @access public
+	 * @var array
+	 */
+	public static $_INTERNAL_IMPORT_IGNORE = NULL;
+
+	/**
 	 * This property will contain a local instance of CodeIgniter,
 	 * if the children set's it
 	 * @var object
@@ -283,9 +291,166 @@ class Std_Library{
 	 * This function is the constructor
 	 * @access public
 	 * @since 1.0
+	 * @param integer|array|object $input The id to load the with, the array or the object to use as base dat for the object
 	 */
-	public function Std_Library(){
+	public function __construct ( $input = NULL ) {
+		$this->_CI =& get_instance();
+		$this->_CI->load->model("Std_Model","_INTERNAL_DATABASE_MODEL");
+		$this->_INTERNAL_DATABASE_MODEL =& $this->_CI->_INTERNAL_DATABASE_MODEL;
+		if ( !is_null($input) ) {
+			self::_Process_Input($input);
+		}
 	}
+
+	/**
+	 * The is function is the descrutor
+	 * @since 1.21
+	 * @access public
+	 */
+	public function __destruct () {}
+
+	/**
+	 * This function is called when accessing properties that doesnt exists,
+	 * but it's going to be used more in 2.0
+	 * @since 1.21
+	 * @access public
+	 * @return integer|boolean|string|object|array
+	 */
+	public function __get ( $proprety ) {}
+
+	/**
+	 * This function is called when trying to set a non existing proprety,
+	 * this function will be used more in 2.0
+	 * @since 1.21
+	 * @access public
+	 */
+	public function __set ( $property, $value) {
+		if (property_exists($this, $property)) {
+			$this->{$property} = $value;
+		}
+	}
+
+	/**
+	 * This function is called when using the isset function on any property in this class that doesnt exists,
+	 * this function will be used more in 2.0s
+	 * @since 1.21
+	 * @access public
+	 * @param  string  $property The property to check if is set
+	 * @return boolean
+	 */
+	public function __isset ( $property ) {
+		return ( property_exists($this, $property) && isset($this->{$property}) && !is_null($this->{$property}) && $this->{$property} != "" && !empty($this->{$property}) );
+	}
+
+	/**
+	 * This function is called when trying to unset a property that isn't accesible,
+	 * this function will be used more in 2.0
+	 * @param string $property The name of the property to unset
+	 * @since 1.21
+	 * @access public
+	 */
+	public function __unset ( $property ) {
+		if ( property_exists($this, $property) && !self::_Secure_Ignore($Property) ) {
+			$this->{$property} = NULL;
+		}
+	}
+
+	/**
+	 * This funciton is called when trying to use this object as a string
+	 * @since 1.21
+	 * @access public
+	 * @return string
+	 */
+	public function __toString () {
+		if ( property_exists($this, "id") ) {
+			return $this->id;
+		} else if ( property_exists($this, "Id") ) {
+			$this->Id;
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * This function is called when the var_export function is called on this object
+	 * @since 1.21
+	 * @access public
+	 * @param  array  $input The input array
+	 * @return object
+	 */
+	public function __set_state ( array $input ) {
+		$object = new self();
+		$object->Import($Input);
+		return $object;
+	}
+
+	/**
+	 * This function is called when the object is cloned,
+	 * this function can be used more in 2.0
+	 * @since 1.21
+	 * @access public
+	 */
+	public function __clone () {}
+
+	/**
+	 * This function is called when the object is serialized
+	 * @since 1.21
+	 * @access public
+	 * @return array
+	 */
+	public function __sleep () {
+		return self::Export();
+	}
+
+	/**
+	 * This function is called when the object is unserialized,
+	 * the function can be used more in 2.0
+	 * @since 1.21
+	 * @access public
+	 */
+	public function __wakeup () {}
+
+	/**
+	 * This function is called when a non accesible function of this object is called
+	 * @return boolean|string|object|integer|array
+	 * @since 1.21
+	 * @access public
+	 */
+	public function __call ( $function, $arguments ) {}
+
+	/**
+	 * This function can be used on 2.0
+	 * @since 1.21
+	 * @param string $name The name of the function to call
+	 * @param integer|string|array $arguments The arguments to pass to the function
+	 * @return boolean|string|object|integer|array
+	 * @static
+	 * @access public
+	 */
+	public static function __callStatic ( $function, $arguments ) {}
+
+	/**
+	 * This function is called when the object is used as a function,
+	 * if a integer is passed, then the Load function is called with that id, 
+	 * else if it's an array then the import funtion else if it's an object,
+	 * then the Add function is used
+	 * @since 1.21 
+	 * @param  integer|array|object $arguments The data to add/load with
+	 * @return integer|boolean
+	 */
+	public function __invoke ( $arguments ) {
+		return self::_Process_Input( $arguments );
+	}
+
+	/**
+	 * This function is going to be used in 2.0,
+	 * to instead of creating classes for each object,
+	 * then this function is going to create stdObjects that has the correct functions
+	 * @since 1.21
+	 * @access public
+	 * @return boolean|integer
+	 */
+	public function __autoload () {}
 
 	/**
 	 * A function 
@@ -296,6 +461,27 @@ class Std_Library{
 	public function Set_Current_User ( $User = NULL ) {
 		if (!is_null($User)) {
 			$this->_INTERNAL_CURRENT_USER = (int)$User;
+		}
+	}
+
+	/**
+	 * This function processes input and calls the correct input function for it
+	 * @since 1.21
+	 * @access private
+	 * @param integer|object|array $arguments The input to process
+	 * @return integer|boolean
+	 */
+	private function _Process_Input ( $arguments ) {
+		if ( !is_null($arguments) ) {
+			if ( is_integer($arguments) ) {
+			return self::Load( $arguments );
+			} else if ( is_array( $arguments ) ) {
+				return self::Import( $arguments );
+			} else if ( is_object($arguments) ) {
+				return self::Add( $arguments );
+			} else if ( property_exists($this, "id") && isset($this->id) ) {
+				return $this->id;
+			}
 		}
 	}
 
@@ -456,13 +642,126 @@ class Std_Library{
 			if(!$this->_CI->_INTERNAL_DATABASE_MODEL->Load($Id,$this)){
 				return FALSE;
 			}
+		} else {
+			throw new Exception("No model deffined", 1);
+			
 		}
+
 		self::_Load_Link();
 		self::_Link_Properties();
 		self::_Load_From_Class($Simple, $Arguments);
 		self::_Force_Array();
 		self::_Convert_To_Boolean();
 		return TRUE;
+	}
+
+	/**
+	 * This function checks if the specified property is set in the _INTERNAL_SIMPLE_LOAD array
+	 * @param string $Property The property to check for
+	 * @return boolean If the data exists in the settings properties
+	 * @since 1.1
+	 * @access private
+	 */
+	private function _Has_Simple_Load_Key($Property = NULL){
+		if(!is_null($Property) && property_exists($this, $Property)){
+			if(property_exists($this, "_INTERNAL_SIMPLE_LOAD") && isset($this->_INTERNAL_SIMPLE_LOAD) && !is_null($this->_INTERNAL_SIMPLE_LOAD) && is_array($this->_INTERNAL_SIMPLE_LOAD)){
+				if(array_key_exists($Property, $this->_INTERNAL_SIMPLE_LOAD)){
+					return TRUE;
+				} else {
+					return FALSE;
+				}
+			} else {
+				return FALSE;
+			}
+		} else {
+			return FALSE;
+		}
+	}
+
+	/**
+	 * This function uses the _INTERNAL_LOAD_FROM_CLASS settings property,
+	 * to load up data stored in the specified properties as classes
+	 * @param boolean $Simple If this flag is set to true, then this function woundn't do a thing
+	 * @param array $Arguments Other arguments parsed from the load function
+	 * @since 1.0
+	 * @access private
+	 */
+	private function _Load_From_Class($Simple = false,$Arguments = NULL){
+		if(property_exists($this, "_INTERNAL_LOAD_FROM_CLASS")  && isset($this->_INTERNAL_LOAD_FROM_CLASS) && !is_null($this->_INTERNAL_LOAD_FROM_CLASS) && is_array($this->_INTERNAL_LOAD_FROM_CLASS) && !$Simple){
+			if(!is_null($this->_INTERNAL_LOAD_FROM_CLASS)){
+				foreach ($this->_INTERNAL_LOAD_FROM_CLASS as $Key => $ClassName) {
+					if(property_exists($this, $Key) && !is_null($this->{$Key})){
+						$ChildSimple = $Simple;
+						if(self::_Has_Simple_Load_Key($Key)){
+							$ChildSimple = $this->_INTERNAL_SIMPLE_LOAD[$Key];
+						}
+						if(!is_bool($ChildSimple)){
+							$ChildSimple = false;
+						}
+
+						//If the CodeIgniter instance exists and isn't null, then load the library
+						if(property_exists($this, "_CI") && !is_null($this->_CI)){
+							$this->_CI->load->library($ClassName);
+						}
+						if(!is_null($this->{$Key}) && $this->{$Key} != "" && class_exists($ClassName)){
+
+							//If the property is an array and it contains data, then make the output an array of objects
+							if(is_array($this->{$Key}) && count($this->{$Key}) > 0){
+								$Temp = array();
+								foreach ($this->{$Key} as $Name => $Value) {
+									if(is_object($Name)){
+										$Temp[] = $Name;
+									} else if(is_object($Value)){ 
+										$Temp[] = $Value;
+									} else {
+										if(!is_null($Value) && (is_integer($Value) || is_string($Value)) && class_exists($ClassName)){
+											$Value = (int) $Value;
+											$Pass = array($Value,$ChildSimple);
+											if(!is_null($Arguments) && count($Arguments) > 0){
+												$Pass = call_user_func_array("self::_Merge_Arguments", array_merge($Pass,$Arguments));
+											}
+											$Object = new $ClassName();
+
+											if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+												$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+											}
+											if(call_user_func_array(array($Object,"Load"),$Pass)){
+												if(!is_null($Object)){
+													$Temp[] = $Object;
+												}
+											}
+										}
+									}
+								}
+								if(count($Temp) > 0){
+									$this->{$Key} = $Temp;
+								}
+
+							//Else just set the property as a single object
+							} else {
+								if(!is_null($this->{$Key})){
+									if(class_exists($ClassName) && gettype($this->{$Key}) != "object"){
+										$Object = new $ClassName();
+										if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+											$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+										}
+										$Pass = array($this->{$Key},$ChildSimple);
+										if(!is_null($Arguments) && count($Arguments) > 0){
+											$Pass = call_user_func_array("self::_Merge_Arguments", array_merge($Pass,$Arguments));
+										}
+										if(call_user_func_array(array($Object,"Load"),$Pass)){
+											if(!is_null($Object)){
+												$this->{$Key} = $Object;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -474,7 +773,7 @@ class Std_Library{
 	public function Database_Rows(){
 		$Variables = self::Export(false,true);
 		$Return = array();
-		$Convert = $this->_CI->_INTERNAL_DATABASE_MODEL->Get_Names();
+		$Convert = $this->_INTERNAL_DATABASE_MODEL->Get_Names($this);
 		foreach ($Variables as $Key => $Value) {
 			if((isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && (!in_array($Key, $this->_INTERNAL_DATABASE_EXPORT_INGNORE)) || ($Key == "id" || $Key == "id")) || !isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE)){
 				if(!is_null($Convert) && is_array($Convert) && array_key_exists($Key, $Convert)){
@@ -494,7 +793,7 @@ class Std_Library{
 	 * @return array
 	 */
 	public function Database_Names(){
-		return $this->_CI->_INTERNAL_DATABASE_MODEL->Get_Names();
+		return $this->_INTERNAL_DATABASE_MODEL->Get_Names($this);
 	}
 
 	/**
@@ -567,114 +866,6 @@ class Std_Library{
 	}
 
 	/**
-	 * This function checks if the specified property is set in the _INTERNAL_SIMPLE_LOAD array
-	 * @param string $Property The property to check for
-	 * @return boolean If the data exists in the settings properties
-	 * @since 1.1
-	 * @access private
-	 */
-	private function _Has_Simple_Load_Key($Property = NULL){
-		if(!is_null($Property) && property_exists($this, $Property)){
-			if(property_exists($this, "_INTERNAL_SIMPLE_LOAD") && isset($this->_INTERNAL_SIMPLE_LOAD) && !is_null($this->_INTERNAL_SIMPLE_LOAD) && is_array($this->_INTERNAL_SIMPLE_LOAD)){
-				if(array_key_exists($Property, $this->_INTERNAL_SIMPLE_LOAD)){
-					return TRUE;
-				} else {
-					return FALSE;
-				}
-			} else {
-				return FALSE;
-			}
-		} else {
-			return FALSE;
-		}
-	}
-
-	/**
-	 * This function uses the _INTERNAL_LOAD_FROM_CLASS settings property,
-	 * to load up data stored in the specified properties as classes
-	 * @param boolean $Simple If this flag is set to true, then this function woundn't do a thing
-	 * @param array $Arguments Other arguments parsed from the load function
-	 * @since 1.0
-	 * @access private
-	 */
-	private function _Load_From_Class($Simple = false,$Arguments = NULL){
-		if(property_exists($this, "_INTERNAL_LOAD_FROM_CLASS") && isset($this->_INTERNAL_LOAD_FROM_CLASS) && !is_null($this->_INTERNAL_LOAD_FROM_CLASS) && is_array($this->_INTERNAL_LOAD_FROM_CLASS) && !$Simple){
-			if(!is_null($this->_INTERNAL_LOAD_FROM_CLASS)){
-				foreach ($this->_INTERNAL_LOAD_FROM_CLASS as $Key => $ClassName) {
-					if(property_exists($this, $Key) && !is_null($this->{$Key})){
-						$ChildSimple = $Simple;
-						if(self::_Has_Simple_Load_Key($Key)){
-							$ChildSimple = $this->_INTERNAL_SIMPLE_LOAD[$Key];
-						}
-						if(!is_bool($ChildSimple)){
-							$ChildSimple = false;
-						}
-
-						//If the CodeIgniter instance exists and isn't null, then load the library
-						if(property_exists($this, "_CI") && !is_null($this->_CI)){
-							@$this->_CI->load->library($ClassName);
-						}
-						if(!is_null($this->{$Key}) && $this->{$Key} != "" && class_exists($ClassName)){
-							//If the property is an array and it contains data, then make the output an array of objects
-							if(is_array($this->{$Key}) && count($this->{$Key}) > 0){
-								$Temp = array();
-								foreach ($this->{$Key} as $Name => $Value) {
-									if(is_object($Name)){
-										$Temp[] = $Name;
-									} else if(is_object($Value)){ 
-										$Temp[] = $Value;
-									} else {
-										if(!is_null($Value) && (is_integer($Value) || is_string($Value)) && class_exists($ClassName)){
-											$Value = (int) $Value;
-											$Pass = array($Value,$ChildSimple);
-											if(!is_null($Arguments) && count($Arguments) > 0){
-												$Pass = call_user_func_array("self::_Merge_Arguments", array_merge($Pass,$Arguments));
-											}
-											$Object = new $ClassName();
-
-											if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
-												$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
-											}
-											if(call_user_func_array(array($Object,"Load"),$Pass)){
-												if(!is_null($Object)){
-													$Temp[] = $Object;
-												}
-											}
-										}
-									}
-								}
-								if(count($Temp) > 0){
-									$this->{$Key} = $Temp;
-								}
-
-							//Else just set the property as a single object
-							} else {
-								if(!is_null($this->{$Key})){
-									if(class_exists($ClassName) && gettype($this->{$Key}) != "object"){
-										$Object = new $ClassName();
-										if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
-											$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
-										}
-										$Pass = array($this->{$Key},$ChildSimple);
-										if(!is_null($Arguments) && count($Arguments) > 0){
-											$Pass = call_user_func_array("self::_Merge_Arguments", array_merge($Pass,$Arguments));
-										}
-										if(call_user_func_array(array($Object,"Load"),$Pass)){
-											if(!is_null($Object)){
-												$this->{$Key} = $Object;
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	/**
 	 * This function merges as many arguments as you but only until level 2
 	 * wish
 	 * @since 1.1
@@ -729,13 +920,13 @@ class Std_Library{
 	 * passed over as ExtraIgnore to the Ignore function
 	 * @param string  $Key    The property name to check for
 	 * @param boolean $Secure If this flag is set to true, the ignore check is done
+	 * @param array $Extra Extra ignore parameters
 	 * @see Ignore
 	 * @access private
 	 * @since 1.1
 	 */
-	private function _Secure_Ignore($Key = NULL,$Secure = true){
+	private function _Secure_Ignore($Key = NULL,$Secure = true,$Extra = array()){
 		if($Secure && !is_null($Key)){
-			$Extra = array();
 			if(property_exists($this, "_INTERNAL_SECURE_EXPORT_IGNORE") && isset($this->_INTERNAL_SECURE_EXPORT_IGNORE) && !is_null($this->_INTERNAL_SECURE_EXPORT_IGNORE) && is_array($this->_INTERNAL_SECURE_EXPORT_IGNORE)){
 				$Extra = array_merge($Extra,$this->_INTERNAL_SECURE_EXPORT_IGNORE);
 			}
@@ -817,7 +1008,11 @@ class Std_Library{
 	public function Import($Array = NULL,$Override = false,$Secure = false){
 		if(!is_null($Array) && is_array($Array)){
 			foreach ($Array as $Property => $Value) {
-				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure)){
+				$Import_Ignore = array();
+				if (property_exists($this, "_INTERNAL_IMPORT_IGNORE") && isset($this->_INTERNAL_IMPORT_IGNORE) && is_array($this->_INTERNAL_IMPORT_IGNORE)){
+					$Import_Ignore = $this->_INTERNAL_IMPORT_IGNORE;
+				}
+				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure,$Import_Ignore)){
 					if(self::_Has_Load_From_Class($Property)){
 						$ClassName = self::_Get_Load_From_Class_Data($Property);
 						$this->_CI->load->library($ClassName);
@@ -879,6 +1074,7 @@ class Std_Library{
 		self::_Convert_To_Boolean();
 		return TRUE;
 	}
+
 
 	/**
 	 * This function checks if a property exists in the force array settings array
@@ -1454,8 +1650,9 @@ class Std_Library{
 	 * @return boolean If success or fail
 	 * @access public
 	 */
-	public function Link($Table = NULL,$Link = NULL,$Property = NULL,$Simple = false,$Select = NULL){
+	public function Link ( $Table = NULL, $Link = NULL, $Property = NULL, $Simple = false, $Select = NULL ) {
 		if(!is_null($Table) && !is_null($Link) && is_array($Link) && !is_null($Property)){
+
 			//Check if the properties exists else remove them from the list
 			foreach($Link as $Search => $Key){
 				if($Search == "" || $Key == ""){
@@ -1522,7 +1719,7 @@ class Std_Library{
 			} else {
 				if(property_exists($Data, "id")){
 					$Return = $Data->id;
-				} elseif(method_exists($Data, "Export")){
+				} else if (method_exists($Data, "Export")) {
 					$Return = $Data->Export(true);
 				}
 			}
@@ -1694,6 +1891,7 @@ class Std_Library{
 						&& is_array($this->_INTERNAL_DATABASE_NAME_CONVERT) 
 						&& array_key_exists($Name, $this->_INTERNAL_DATABASE_NAME_CONVERT)
 						&& !is_null($this->_INTERNAL_DATABASE_NAME_CONVERT)) {
+
 						//If the data is an array implode it with a ";" sign else just assign it
 						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && $Data != "NULL"){
 							$String = ";";

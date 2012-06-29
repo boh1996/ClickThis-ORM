@@ -5,7 +5,7 @@
  * @license http://illution.dk/copyright © Illution 2012
  * @subpackage Std_Model
  * @category Models
- * @version 1.1
+ * @version 1.21
  * @author Illution <support@illution.dk>
  */ 
 class Std_Model extends CI_Model{
@@ -16,6 +16,7 @@ class Std_Model extends CI_Model{
 	 * @var array
 	 * @since 1.1
 	 * @access private
+	 * @deprecated This property is deprecated as of 1.21
 	 */
 	private $_INTERNAL_DATABASE_NAME_CONVERT = NULL;
 
@@ -24,6 +25,7 @@ class Std_Model extends CI_Model{
 	 * @var array
 	 * @see $_INTERNAL_DATABASE_NAME_CONVERT
 	 * @access private
+	 * @deprecated This property is deprecated as of 1.21
 	 * @since 1.1
 	 */
 	private $_INTERNAL_ROW_NAME_CONVERT = NULL;
@@ -45,6 +47,7 @@ class Std_Model extends CI_Model{
      * @param string $Type The config option to set properties are "DATABASE_NAME_CONVERT" or "ROW_NAME_CONVERT"
      * @access public
      * @since 1.1
+     * @deprecated This function is deprecated as of 1.21
      */
     public function Set_Names($Names = NULL,$Type = "DATABASE_NAME_CONVERT"){
     	if(!is_null($Names) && !is_null($Type) && is_array($Names)){
@@ -74,20 +77,21 @@ class Std_Model extends CI_Model{
     /**
      * This function either returns the Database name convert
      * or the row name convert
+     * @param object &$CLass The class to get the information from
      * @param string $Type The array to return DATABASE_NAME_CONVERT
      * or  "ROW_NAME_CONVERT"
      * @return array
      * @since 1.1
      * @access public
      */
-    public function Get_Names($Type = "DATABASE_NAME_CONVERT"){
+    public function Get_Names(&$Class, $Type = "DATABASE_NAME_CONVERT"){
     	switch($Type){
 			case "DATABASE_NAME_CONVERT":
-				return $this->_INTERNAL_DATABASE_NAME_CONVERT;
+				return self::_Create_Conversion_Table($Class,"Database");
 			break;
 
 	        case "ROW_NAME_CONVERT":
-	        	return $this->_INTERNAL_ROW_NAME_CONVERT;
+	        	return self::_Create_Conversion_Table($Class,"Row");
 	        break;
         }
     }
@@ -135,7 +139,7 @@ class Std_Model extends CI_Model{
 	 * @internal This function is only used inside this model, to convert the exported data to the right format
 	 * @return array The data with the right key names
 	 */
-	private function Convert_Properties_To_Database_Row($Data = NULL,&$Class = NULL){
+	private function _Convert_Properties_To_Database_Row($Data = NULL,&$Class = NULL){
 		if(!is_null($Data) && !is_null($Class)){
 			$Table = self::_Create_Conversion_Table($Class);
 			if(count($Table) > 0){
@@ -153,6 +157,26 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
+	 * This function converts a database row to class property name
+	 * @since 1.21
+	 * @access private
+	 * @param object &$Class The object to find the conversion table in
+	 * @param stirng $Key    The database row name
+	 */
+	private function _Convert_Row_To_Property (&$Class, $Key) {
+		$Table = self::_Create_Conversion_Table($Class,"Row");
+		if (is_array($Table) && count($Table) > 0) {
+			if (array_key_exists($Key, $Table)) {
+				return $Table[$Key];
+			} else {
+				return $Key;
+			}
+		} else {
+			return $Key;
+		}
+	}
+
+	/**
 	 * This function converts the class properties to database row names
 	 * @param object $Object The object that is going to be converted
 	 * @param string $Key    Thd class property to convert
@@ -166,7 +190,7 @@ class Std_Model extends CI_Model{
 			$Table = self::_Create_Conversion_Table($Class);
 		}
 		if(is_array($Table) && count($Table) > 0){
-			if(array_key_exists($Key, $Table)){
+			if(array_key__Exists($Key, $Table)){
 				return $Table[$Key];
 			} else {
 				return $Key;
@@ -219,7 +243,7 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
-	 * This function checks if a row exists in the database
+	 * This function checks if a row Exists in the database
 	 * @param integer $Id The database row id for the row to check for
 	 * @param string $Table The database table to look up in
 	 * @access private
@@ -227,7 +251,7 @@ class Std_Model extends CI_Model{
 	 * @return boolean The result, if the user doesn't exist or the input is wrong then FALSE is returned,
 	 * else TRUE is returned.
 	 */
-	private function Exists($Id = NULL,$Table = NULL){
+	private function _Exists($Id = NULL,$Table = NULL){
 		if(!is_null($Id) && !is_null($Table) && !is_array($Id)){
 			$Query = $this->db->where(array("id" => $Id))->get($Table);
 			if(!is_null($Query) && $Query->num_rows() == 0){
@@ -251,40 +275,19 @@ class Std_Model extends CI_Model{
 	 * @since 1.0
 	 */
 	public function Load($Id = NULL,&$Class = NULL){
-		if(!is_null($Class) && property_exists(get_class($Class), "Database_Table")){
+		if(!is_null($Class) && property_exists($Class, "Database_Table")){
 			if(!is_null($Id)){
 				$Class->id = $Id;
 			}
-			if(!is_null($Class->id) && self::Exists($Class->id,$Class->Database_Table)){
+			if(!is_null($Class->id) && self::_Exists($Class->id,$Class->Database_Table)){
 				$ClassQuery = $this->db->get_where($Class->Database_Table,array("id" => $Class->id));
 				foreach($ClassQuery->result() as $Row){
 					foreach ($Row as $Key => $Value) {
-						if(property_exists($this,"_INTERNAL_ROW_NAME_CONVERT") 
-							&& is_array($this->_INTERNAL_ROW_NAME_CONVERT) 
-							&& array_key_exists($Key, $this->_INTERNAL_ROW_NAME_CONVERT))
-						{
-							if(property_exists(get_class($Class), $this->_INTERNAL_ROW_NAME_CONVERT[$Key])){
-								if(!is_null($Value) && !empty($Value) && $Value != ""){
-									if(strpos($Value, ";") !== false){
-										$Value = rtrim($Value,";");
-										$Value = ltrim($Value,";");
-										$Class->{$this->_INTERNAL_ROW_NAME_CONVERT[$Key]} = explode(";", $Value);
-									} else {
-										$Class->{$this->_INTERNAL_ROW_NAME_CONVERT[$Key]} = $Value;
-									}
-								}
-							}
-						} else {
-							if(property_exists(get_class($Class), $Key)){
-								if(!is_null($Value) && !empty($Value) && $Value != ""){
-									if(strpos($Value, ";") !== false){
-										$Value = rtrim($Value,";");
-										$Value = ltrim($Value,";");
-										$Class->{$Key} = explode(";", $Value);
-									} else {
-										$Class->{$Key} = $Value;
-									}
-								}
+						$Key = self::_Convert_Row_To_Property($Class,$Key);
+						if(property_exists($Class, $Key)){
+							$Value = self::_Explode($Value);
+							if($Value !== false && !is_null($Value)){
+								$Class->{$Key} = $Value;
 							}
 						}
 					}
@@ -300,6 +303,29 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
+	 * This function explodes the input data with the specified Delemiter,
+	 * using trim too
+	 * @since 1.0
+	 * @access private
+	 * @param string $Data      The inout data
+	 * @param string $Delemiter The delemiter
+	 * @return array|boolean
+	 */
+	private function _Explode ( $Data , $Delemiter = ";" ) {
+		if (!is_null($Data) && is_string($Delemiter) && !empty($Data) && $Data != "") {
+			if (strpos($Data, $Delemiter) !== false) {
+				$Data = rtrim($Data,$Delemiter);
+				$Data = ltrim($Data,$Delemiter);
+				return explode($Delemiter, $Data);
+			} else {
+				return $Data;
+			}
+		} else {
+			return FALSE;
+		}
+	}
+
+	/**
 	 * This function inserts data into the db and return the insert_id
 	 * @param object &$Class The class to get the data from
 	 * @since 1.0
@@ -307,7 +333,7 @@ class Std_Model extends CI_Model{
 	 * @return integer The new database id
 	 */
 	public function Create(&$Class){
-		if(method_exists($Class, "Export") && property_exists(get_class($Class), "Database_Table")){
+		if(method__Exists($Class, "Export") && property__Exists(get_class($Class), "Database_Table")){
 			$data = $Class->Export(true);
 			$this->CI->db->insert($Class->Database_Table, $data); 
 			return $this->CI->db->insert_id();
@@ -322,17 +348,17 @@ class Std_Model extends CI_Model{
 	 * @return boolean If the operation was succes
 	 */
 	public function Save(&$Class = NULL){
-		if( property_exists($Class, "Database_Table")){
-			self::_Data_Exists($Class);
-			if((isset($Class->id) || isset($Class->id)) && self::Exists($Class->id,$Class->Database_Table)){
+		if( property__Exists($Class, "Database_Table")){
+			self::_Data__Exists($Class);
+			if((isset($Class->id) || isset($Class->id)) && self::_Exists($Class->id,$Class->Database_Table)){
 
-				if (method_exists($Class, "Data_Updated")) {
+				if (method__Exists($Class, "Data_Updated")) {
 					$Class->Data_Updated();
 				}
 				
 				$Data = $Class->Export(true);
-				if(property_exists($Class, "Database_Table") && count($Data) > 0){
-					$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::Convert_Properties_To_Database_Row($Data,$Class));
+				if(property__Exists($Class, "Database_Table") && count($Data) > 0){
+					$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
 					return true; //Maybe a check for mysql errors
 				} else {
 					return false;
@@ -345,20 +371,20 @@ class Std_Model extends CI_Model{
 				} else {	
 					$Id = NULL;
 				}
-				if(!self::Exists($Id)){
+				if(!self::_Exists($Id)){
 
-					if (method_exists($Class, "Data_Updated")) {
+					if (method__Exists($Class, "Data_Updated")) {
 						$Class->Data_Updated();
 					}
 
-					if (method_exists($Class, "Data_Created")) {
+					if (method__Exists($Class, "Data_Created")) {
 						$Class->Data_Created();
 					}
 					
 					$Data = $Class->Export(true);
 					if(!is_null($Data) && !is_null($Class) && count($Data) > 0){
-						$this->db->insert($Class->Database_Table, self::Convert_Properties_To_Database_Row($Data,$Class));
-						if(property_exists($Class, "id")){
+						$this->db->insert($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
+						if(property__Exists($Class, "id")){
 							$Class->id = $this->db->insert_id();
 						} else {
 							$Class->id = $this->db->insert_id();
@@ -375,7 +401,7 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
-	 * This function gets an id of a dublicate, if it exists
+	 * This function gets an id of a dublicate, if it _Exists
 	 * @param object &$Class The class to get the data from
 	 * @return integer If there is an result then the id of the dublicate is returned
 	 * @since 1.1
@@ -384,7 +410,7 @@ class Std_Model extends CI_Model{
 	private function _Get_Dublicate_Id(&$Class = NULL){
 		if(is_object($Class)){
 			$Data = $Class->Export(true);
-			$Data = self::Convert_Properties_To_Database_Row($Data);
+			$Data = self::_Convert_Properties_To_Database_Row($Data);
 			if(is_null($Class->id)){
 				$Query = $this->db->limit(1)->get_where($Class->$Database_Table,$Data);
 			} else {
@@ -408,7 +434,7 @@ class Std_Model extends CI_Model{
 	 */
 	private function _Check_For_Data_Dublicate(&$Class = NULL){
 		if(!is_null($Class)){
-			if(property_exists($Class, "_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL") && !is_null($Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL) && is_bool($Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL)){
+			if(property__Exists($Class, "_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL") && !is_null($Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL) && is_bool($Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL)){
 				return $Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL;
 			} else {
 				return TRUE;
@@ -428,7 +454,7 @@ class Std_Model extends CI_Model{
 	private function _Has_Duplicate(&$Class = NULL){
 		if(!is_null($Class)){
 			$Data = $Class->Export(true);
-			$Data = self::Convert_Properties_To_Database_Row($Data);
+			$Data = self::_Convert_Properties_To_Database_Row($Data);
 			if(is_null($Class->id)){
 				$Query = $this->db->limit(1)->get_where($Class->$Database_Table,$Data);
 			} else {
@@ -448,16 +474,16 @@ class Std_Model extends CI_Model{
 
 	/**
 	 * This function sets the id of the $Class to an
-	 * id of a dublicate if one exists, so the dublicate would be overwritten
+	 * id of a dublicate if one _Exists, so the dublicate would be overwritten
 	 * @param object &$Class The object to use data for and set data too
 	 * @since 1.1
 	 * @access private
-	 * @return boolean If dublicate data exists
+	 * @return boolean If dublicate data _Exists
 	 */
-	private function _Data_Exists(&$Class = NULL){
+	private function _Data__Exists(&$Class = NULL){
 		if(!is_null($Class)){
 			if(self::_Has_Duplicate() != false){
-				if(property_exists($Class, "id")){
+				if(property__Exists($Class, "id")){
 					$Class->id = self::_Get_Duplicate_Id($Class);
 					return TRUE;
 				}
@@ -468,7 +494,7 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
-	 * This function matches, data in the database and if some data exists, then the 
+	 * This function matches, data in the database and if some data _Exists, then the 
 	 * id of the $Class is set to the id of the dublicate
 	 * @param object &$Class    The object to set the id of
 	 * @param array $QueryData The data to check for
@@ -484,13 +510,13 @@ class Std_Model extends CI_Model{
 			if(isset($Class->id)){
 				$QueryData["id"] = "!= ".$Class->id;
 			}
-			$QueryData = self::Convert_Properties_To_Database_Row($QueryData,$Class);
-			if(property_exists($Class, "Database_Table")){
+			$QueryData = self::_Convert_Properties_To_Database_Row($QueryData,$Class);
+			if(property__Exists($Class, "Database_Table")){
 				$Query = $this->db->limit(1)->get_where($Class->Database_Table,$QueryData);
 				if($Query->num_rows() > 0){
 					foreach ($Query->result() as $Row) {
-						if(property_exists($Class, "id")){
-							if(!property_exists($Row, "id")){
+						if(property__Exists($Class, "id")){
+							if(!property__Exists($Row, "id")){
 								$Class->id = $Row->id;
 								return TRUE;
 							} else {
@@ -533,7 +559,7 @@ class Std_Model extends CI_Model{
                     $Or_Like[$Key] = $Value;
                 }
             }
-            if(property_exists($Class, "id")){
+            if(property__Exists($Class, "id")){
             	$Select = "id";
             } else {
             	$Select = "id";
@@ -565,7 +591,7 @@ class Std_Model extends CI_Model{
 	 */
 	public function Find($Query = NULL,$Table = NULL,&$Class = NULL){
 		if(!is_null($Query) && is_array($Query) && !is_null($Table)){
-			$Data = self::Convert_Properties_To_Database_Row($Query,$Class);
+			$Data = self::_Convert_Properties_To_Database_Row($Query,$Class);
 			if(!is_null($Data)){
 				$Raw = self::_Get_Query_Data($Data,$Table,$Class);
 				if($Raw->num_rows() > 0){
