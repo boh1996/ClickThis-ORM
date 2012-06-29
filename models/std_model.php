@@ -11,26 +11,6 @@
 class Std_Model extends CI_Model{
 
 	/**
-	 * This property contains data to convert, 
-	 * class property names to databse rows
-	 * @var array
-	 * @since 1.1
-	 * @access private
-	 * @deprecated This property is deprecated as of 1.21
-	 */
-	private $_INTERNAL_DATABASE_NAME_CONVERT = NULL;
-
-	/**
-	 * This property do the opposite as _INTERNAL_DATABASE_NAME_CONVERT
-	 * @var array
-	 * @see $_INTERNAL_DATABASE_NAME_CONVERT
-	 * @access private
-	 * @deprecated This property is deprecated as of 1.21
-	 * @since 1.1
-	 */
-	private $_INTERNAL_ROW_NAME_CONVERT = NULL;
-
-	/**
 	 * This function is the constructor, it creates a local instance of CodeIgniter
 	 * @access public
 	 * @since 1.0
@@ -38,40 +18,6 @@ class Std_Model extends CI_Model{
 	public function __construct()
     {
         parent::__construct();
-    }
-
-    /**
-     * This function sets the _INTERNAL_DATABASE_NAME_CONVERT and the _INTERNAL_ROW_NAME_CONVERT property,
-     * that is used to convert property names to database rows
-     * @param array $Names The names convert array
-     * @param string $Type The config option to set properties are "DATABASE_NAME_CONVERT" or "ROW_NAME_CONVERT"
-     * @access public
-     * @since 1.1
-     * @deprecated This function is deprecated as of 1.21
-     */
-    public function Set_Names($Names = NULL,$Type = "DATABASE_NAME_CONVERT"){
-    	if(!is_null($Names) && !is_null($Type) && is_array($Names)){
-    		switch($Type){
-    			case "DATABASE_NAME_CONVERT":
-		        	$this->_INTERNAL_DATABASE_NAME_CONVERT = $Names;
-		        	$this->_INTERNAL_ROW_NAME_CONVERT = array();
-		        	foreach($Names as $Key => $Value){
-		        		$this->_INTERNAL_ROW_NAME_CONVERT[$Value] = $Key;
-		        	}
-		        break;
-
-		        case "ROW_NAME_CONVERT":
-		        	if(!is_null($this->_INTERNAL_ROW_NAME_CONVERT)){
-		        		$this->_INTERNAL_ROW_NAME_CONVERT = array_merge($this->_INTERNAL_ROW_NAME_CONVERT,$Names);
-		        	} else {
-		        		$this->_INTERNAL_ROW_NAME_CONVERT = $Names;
-		        	}
-		        	if(is_null($this->_INTERNAL_DATABASE_NAME_CONVERT)){
-		        		$this->_INTERNAL_DATABASE_NAME_CONVERT = array_flip($Names);
-		        	}
-		        break;
-        	}
-        }
     }
 
     /**
@@ -190,7 +136,7 @@ class Std_Model extends CI_Model{
 			$Table = self::_Create_Conversion_Table($Class);
 		}
 		if(is_array($Table) && count($Table) > 0){
-			if(array_key__Exists($Key, $Table)){
+			if(array_key_exists($Key, $Table)){
 				return $Table[$Key];
 			} else {
 				return $Key;
@@ -266,37 +212,57 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
+	 * This function converts the fields array names into database column names
+	 * @since 1.21
+	 * @access private
+	 * @param array  $Fields The array to convert
+	 * @param object &$Class The class to get the conversion table from
+	 */
+	private function _Convert_Fields (array $Fields, &$Class) {
+		$Table = self::_Create_Conversion_Table($Class,"Database");
+		if(count($Table) > 0){
+			$Array = array();
+			foreach ($Fields as $Index => $Key) {
+				$Array[] = self::_Get_Database_Row_Name($Class,$Key,$Table);
+			}
+			return $Array;
+		} else {
+			return $Fields;
+		}	
+	}
+
+	/**
 	 * This function loads class data from the database table,
 	 * and assign it to the object in $Class
 	 * @param integer $Id    An optional database id for the row, if it's not deffined the $Class->id will be used.
 	 * @param object &$Class The class to assign the data too
+	 * @param array $Fields The fields to select
 	 * @return boolean If there's data available and it's loaded true is returned else is false returned
 	 * @access public
 	 * @since 1.0
 	 */
-	public function Load($Id = NULL,&$Class = NULL){
+	public function Load($Id = NULL,&$Class = NULL,array $Fields = NULL){
 		if(!is_null($Class) && property_exists($Class, "Database_Table")){
 			if(!is_null($Id)){
 				$Class->id = $Id;
 			}
+			$Fields = implode(",", self::_Convert_Fields($Fields,$Class));
 			if(!is_null($Class->id) && self::_Exists($Class->id,$Class->Database_Table)){
-				$ClassQuery = $this->db->get_where($Class->Database_Table,array("id" => $Class->id));
-				foreach($ClassQuery->result() as $Row){
-					foreach ($Row as $Key => $Value) {
-						$Key = self::_Convert_Row_To_Property($Class,$Key);
-						if(property_exists($Class, $Key)){
-							$Value = self::_Explode($Value);
-							if($Value !== false && !is_null($Value)){
-								$Class->{$Key} = $Value;
-							}
+				$ClassQuery = $this->db->limit(1)->select($Fields)->where(array("id" => $Class->id))->get($Class->Database_Table);
+				$Row = current($ClassQuery->result());
+				foreach ($Row as $Key => $Value) {
+					$Key = self::_Convert_Row_To_Property($Class,$Key);
+					if(property_exists($Class, $Key)){
+						$Value = self::_Explode($Value);
+						if($Value !== false && !is_null($Value)){
+							$Class->{$Key} = $Value;
 						}
 					}
 				}
 				return TRUE;
 			} else {
 				return FALSE;
-			}
-			
+			}	
 		} else {
 			return false;
 		}
@@ -307,7 +273,7 @@ class Std_Model extends CI_Model{
 	 * using trim too
 	 * @since 1.0
 	 * @access private
-	 * @param string $Data      The inout data
+	 * @param string $Data      The input data
 	 * @param string $Delemiter The delemiter
 	 * @return array|boolean
 	 */

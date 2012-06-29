@@ -465,23 +465,148 @@ class Std_Library{
 	}
 
 	/**
-	 * This function processes input and calls the correct input function for it
-	 * @since 1.21
-	 * @access private
-	 * @param integer|object|array $arguments The input to process
-	 * @return integer|boolean
+	 * This function refresh the class data from the database
+	 * @see self::Load
+	 * @since 1.0
+	 * @return boolean If success or fail
+	 * @access public
 	 */
-	private function _Process_Input ( $arguments ) {
-		if ( !is_null($arguments) ) {
-			if ( is_integer($arguments) ) {
-			return self::Load( $arguments );
-			} else if ( is_array( $arguments ) ) {
-				return self::Import( $arguments );
-			} else if ( is_object($arguments) ) {
-				return self::Add( $arguments );
-			} else if ( property_exists($this, "id") && isset($this->id) ) {
+	public function Refresh(){
+		if(property_exists($this, "id")){
+			if(!is_null($this->id)){
+				if(method_exists($this, "Load")){
+					return self::Load($this->id);
+				}
+			}
+		}
+	}
+
+	/**
+	 * This function delete's data local in the class, but if selected it can also delete the data from the database
+	 * @param boolean $Database If this flag is set too true, the database data will be deleted too
+	 * @since 1.0
+	 * @access public
+	 * @return object This function returns this object
+	 * @todo Add hierrachy delete function
+	 */
+	public function Delete($Database = true){
+		if($Database){
+			if(method_exists($this, "_RemoveDatabaseData") && isset($this->id)){
+				self::_RemoveDatabaseData($this->id,$this->Database_Table);
+			}
+			if(method_exists($this, "_RemoveUserData")){
+				self::_RemoveUserData(true);
+			}
+		}
+		else{
+			if(method_exists($this, "_RemoveUserData")){
+				self::_RemoveUserData(false);
+			}
+		}
+		return $this;
+	}
+
+	/**
+	 * This function takes the data from the $Array parameter and adds it to the local data,
+	 * and if the database flag is set the data will be saved too. 
+	 * @param array  $Array    The data in Name => Value format
+	 * @param boolean $Database If this flag is set too true the data is saved too
+	 * @access public
+	 * @since 1.0
+	 */
+	public function Create($Array =  NULL,$Database = false){
+		if(!is_null($Array)){
+			self::_SetDataArray($Array);
+			if($Database && !is_null($this->_CI) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
+				$this->id = $this->_CI->_INTERNAL_DATABASE_MODEL->Create($this);
 				return $this->id;
 			}
+		}
+	}
+
+	/**
+	 * This function adds data, to this class either from a class or from an array,
+	 * and if the Database flag is set to true the data will be saved to the database.
+	 * @param object  &$Class   This parameter should contain a class that has the data to add deffined,
+	 * with the same variable names, as this class. Not all variables need to be deffined only create them you need to.
+	 * @param array  $Array    If this parameter is set and $Class is null the data from this parameter is used in Name => Value format
+	 * @param boolean $Database If this flag is set to true, then the data will be saved in the database too
+	 * @access public
+	 * @since 1.0
+	 */
+	public function Add(&$Class = NULL,$Array = NULL, $Database = false){
+		if(!is_null($Class)){
+			self::_SetDataClass($Class);
+		}
+		else{
+			if(!is_null($Array)){
+				self::_SetDataArray($Array);
+			}
+			else{
+				return 400;	
+			}
+		}
+		if($Database && !is_null($this->id) && !is_null($this->_CI) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
+			$this->id = $this->_CI->_INTERNAL_DATABASE_MODEL->Create($this);
+			return $this->id;
+		}
+	}
+
+	/**
+	 * This function checks the local settings variable for export,
+	 * to see if the $Key exists in one of them or if the Key contains the _INTERNAL keyword
+	 * @param string||integer $Key         The key to check
+	 * @param array $ExtraIgnore Some extra ignore rules if nessesary
+	 * @return boolean if to be ignored true is returned else is false returned
+	 * @access public
+	 * @since 1.0
+	 */
+	public function Ignore($Key = NULL,$ExtraIgnore = NULL){
+		if(!is_null($Key)){
+			if(!strpos($Key, "INTERNAL_") === false){
+				return true;
+			} else {
+				if(property_exists($this, "_INTERNAL_EXPORT_INGNORE") && isset($this->_INTERNAL_EXPORT_INGNORE) && !is_null($this->_INTERNAL_EXPORT_INGNORE)){
+					if(in_array($Key,$this->_INTERNAL_EXPORT_INGNORE)){
+						return true;
+					} else {
+						if(!is_null($ExtraIgnore) && in_array($Key, $ExtraIgnore)){
+							return true;
+						} else {
+							return false;
+						}
+					}
+				} else {
+					if(!is_null($ExtraIgnore) && in_array($Key, $ExtraIgnore)){
+						return true;
+					} else {
+						return false;
+					}
+				}
+			}
+		} else {
+			return true;
+		}
+	}
+
+	/**
+	 * This function is used to load based under a query.
+	 * The data row names is converted so in the query use the names of the class properties.
+	 * @param array $Query The query array
+	 * @since 1.1
+	 * @access public
+	 * @return boolean If it was a success
+	 */
+	public function Find($Query = NULL){
+		if (!is_null($Query) && is_array($Query)) {
+			$Data = $this->_CI->_INTERNAL_DATABASE_MODEL->Find($Query,$this->Database_Table,$this);
+			if($Data !== false){
+				return self::Load($Data);
+			} else {
+				return FALSE;
+			}
+		} else {
+			return FALSE;
 		}
 	}
 
@@ -613,46 +738,352 @@ class Std_Library{
 	 * @param integer $Id The database id to load data from, this parameter is optional,
 	 * if it's not deffined the $Id property value will be used
 	 * @param boolean $Simple If this flag is set to true, then the Load From Class won't be done
+	 * @param array $Fields The fields to select, if not fields are chosen, then all fields are selected
 	 * @since 1.0
 	 * @access public
 	 * @return boolean If the load is succes with data is true returned else is false returned
 	 */
-	public function Load($Id = NULL,$Simple = false) {
+	public function Load($Id = NULL,$Simple = false,$Fields = NULL) {
 		$Arguments = func_get_args();
+		$Parameters = array("Id","Simple","Fields");
 		if(is_null($Arguments)){
 			$Arguments = array();
 		}
-		if(isset($Arguments[0])){
-				unset($Arguments[0]);
+		if (is_null($Fields) || !is_array($Fields)) {
+			$Fields = self::_Get_Fields();
 		}
-		if(isset($Arguments[1])){
-			unset($Arguments[1]);
+		foreach ($Parameters as $Index => $Parameter) {
+			unset($Arguments[$Index]);
 		}
 		if(!is_null($Id)){
-			$this->id = $Id;
+			$this->id = (int)$Id;
 		}
 		if(isset($this->id)){
 			$Id = $this->id;
-		} else if(isset($this->id)){
-			$Id = $this->id;
 		} else {
-			$Id = NULL;
+			throw new Exception("Not a valid id specified", 1);
+			return;
 		}
 		if(!is_null($Id) && isset($this->_CI->_INTERNAL_DATABASE_MODEL) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
-			if(!$this->_CI->_INTERNAL_DATABASE_MODEL->Load($Id,$this)){
+			if(!$this->_CI->_INTERNAL_DATABASE_MODEL->Load($Id,$this,$Fields)){
 				return FALSE;
 			}
 		} else {
 			throw new Exception("No model deffined", 1);
-			
+			return;	
 		}
 
-		self::_Load_Link();
-		self::_Link_Properties();
+		if (property_exists($this, "_INTERNAL_DATABASE_EXPORT_INGNORE") && isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && is_array($this->_INTERNAL_DATABASE_EXPORT_INGNORE)) {
+			$Fields = array_merge($this->_INTERNAL_DATABASE_EXPORT_INGNORE,$Fields);
+			$Fields = array_unique($Fields);
+		}
+
+		self::_Load_Link($Fields);
+		self::_Link_Properties($Fields);
 		self::_Load_From_Class($Simple, $Arguments);
 		self::_Force_Array();
 		self::_Convert_To_Boolean();
 		return TRUE;
+	}
+
+	/**
+	 * This function checks if the class exists
+	 * @since 1.21
+	 * @access public
+	 * @param integer $Id The id to search for
+	 */
+	public function Exists ($Id = NULL) {
+		return self::Load($Id,true,array("id"));
+	}
+
+	/**
+	 * This function returns all the class variable with name and values as an array
+	 * @return array All the class vars and values
+	 * @param boolean $Database If this flag is set to true, the data will be exported so the key names,
+	 * fits the database row names
+	 * @param boolean $Secure If this flag is set to true, then the $_INTERNAL_SECURE_EXPORT_IGNORE is used to ignore
+	 * not public rows.
+	 * @since 1.0
+	 * @access public
+	 * @return array The class data as an array
+	 */
+	public function Export ($Database = false,$Secure = false, $Ignore_Empty = true ) {
+		if ($Database) {
+			$Array = array();
+			$Ignore = NULL;
+
+			//Loop through all class properties
+			foreach (get_class_vars(get_class($this)) as $Name => $Value) {
+
+				//If the property is the CodeIgniter instance, the id or an internal property dont do anything
+				if (!self::Ignore($Name,$Ignore) && (!is_null($this->{$Name}) || $Ignore_Empty == false) && !self::_Is_Linked_Property($Name)) {
+					$Data = $this->{$Name};
+					if(self::_Contains_Object($Data) && !self::_Is_Property_Linked_Row($Name)){
+						$Data = self::_Convert_From_Object($Data);
+					}
+
+					if($Database){
+						if(self::_Is_Property_Linked_Row($Name)){
+							$Data = self::_Property_Linked_Row_Export($Data,$Name);
+						}
+					}
+
+					//If the class has an name convert table, check if the current property exists in it
+					// , if it does use that as the array key
+					if(property_exists($this, "_INTERNAL_DATABASE_NAME_CONVERT") 
+						&& isset($this->_INTERNAL_DATABASE_NAME_CONVERT)
+						&& is_array($this->_INTERNAL_DATABASE_NAME_CONVERT) 
+						&& array_key_exists($Name, $this->_INTERNAL_DATABASE_NAME_CONVERT)
+						&& !is_null($this->_INTERNAL_DATABASE_NAME_CONVERT)) {
+
+						//If the data is an array implode it with a ";" sign else just assign it
+						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && $Data != "NULL"){
+							$String = ";";
+							$String .= implode(";",$Data);
+							$String .= ";";
+							$String = str_replace(";NULL", "", $String);
+							if($String != "" && $String != ";"){
+								$Array[$this->_INTERNAL_DATABASE_NAME_CONVERT[$Name]] = $String;
+							}
+						} else if( (!is_null($Data) && $Data != "NULL") || ($Ignore_Empty == false) ){
+							$Array[$this->_INTERNAL_DATABASE_NAME_CONVERT[$Name]] = $Data;
+						}
+					} else {
+						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && !self::_Contains_Object($Data) && $Data != "NULL"){
+							$String = ";".implode(";",$Data).";";
+							$String = str_replace(";NULL", "", $String);
+							if($String != "" && $String != ";"){
+								$Array[$Name] = $String;
+							}
+						} else if((!is_null($Data) && $Data != "NULL") || ($Ignore_Empty == false) ){
+							$Array[$Name] = $Data;
+						}
+					}
+				}
+			}
+		} 
+		else if(!$Database && !$Secure){
+			$Array = array();
+			$Array = self::_Normal_Export();
+		} else if($Secure){
+			if(property_exists($this, "_INTERNAL_SECURE_EXPORT_IGNORE") && isset($this->_INTERNAL_SECURE_EXPORT_IGNORE) && !is_null($this->_INTERNAL_SECURE_EXPORT_IGNORE) && is_array($this->_INTERNAL_SECURE_EXPORT_IGNORE)){
+				$Array = array();
+				$Array = self::_Secure_Export();
+			} 
+			else {
+				$Array = array();
+				$Array = self::_Normal_Export(true);
+			}
+		}
+		return $Array;
+	}
+
+	/**
+	 * This function returns an array of the database name convert array
+	 * @since 1.1
+	 * @access public
+	 * @return array
+	 */
+	public function Database_Rows(){
+		$Variables = self::Export(false,true);
+		$Return = array();
+		$Convert = $this->_INTERNAL_DATABASE_MODEL->Get_Names($this);
+		foreach ($Variables as $Key => $Value) {
+			if((isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && (!in_array($Key, $this->_INTERNAL_DATABASE_EXPORT_INGNORE)) || ($Key == "id" || $Key == "id")) || !isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE)){
+				if(!is_null($Convert) && is_array($Convert) && array_key_exists($Key, $Convert)){
+					$Return[$Convert[$Key]] = $Value;
+				} else {
+					$Return[$Key] = $Value;
+				}
+			}
+		}
+		return $Return;
+	}
+
+	/**
+	 * This function returns an array of the database convertion table
+	 * @since 1.1
+	 * @access public
+	 * @return array
+	 */
+	public function Database_Names(){
+		return $this->_INTERNAL_DATABASE_MODEL->Get_Names($this);
+	}
+
+	/**
+	 * This function saves the local class data to the database row of the Id property
+	 * @return string This function can return a error string
+	 * @todo Make the linked properties be saved to, and with the an updated id, etc SeriesId = $this->id
+	 * @since 1.0
+	 * @access public
+	 */
+	public function Save() {
+		if(isset($this->_CI) && !is_null($this->_CI) && isset($this->_CI->_INTERNAL_DATABASE_MODEL) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL) ){
+			if(self::_Not_Allowed_Dublicate_Rows() === false || self::_Overwrite_On_Dublicate() === true){
+				self::_Save_Childrens_Before();
+				$this->_CI->_INTERNAL_DATABASE_MODEL->Save($this);		
+				self::_Save_Linked_Properties();
+				self::_Save_ChildClasses_Properties();
+				return true;
+			} else {
+				return FALSE;
+			}
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * This function links a class property to data collected from other databases
+	 * @param string||array $Table    The table(s) to search in
+	 * @param array $Link     An array in this format array("Row Name" => "Class property or  a value"...) 
+	 * with the search queries to search with.
+	 * @param string $Property The class property to link
+	 * @param boolean $Simple if this flag is set to true, then the load from class isn't executed
+	 * @param array $Select The rows to select/use
+	 * @since 1.0
+	 * @return boolean If success or fail
+	 * @access public
+	 */
+	public function Link ( $Table = NULL, $Link = NULL, $Property = NULL, $Simple = false, $Select = NULL ) {
+		if(!is_null($Table) && !is_null($Link) && is_array($Link) && !is_null($Property)){
+
+			//Check if the properties exists else remove them from the list
+			foreach($Link as $Search => $Key){
+				if($Search == "" || $Key == ""){
+					unset($Link[$Search]);
+				} else {
+					if(property_exists($this, $Key)){
+						if(is_null($this->{$Key})){
+							unset($Link[$Search]);
+						}
+						else if($this->{$Key} == ""){
+							unset($Link[$Search]);
+						} else {
+							$Link[$Search] = $this->{$Key};
+						}
+					}
+				}
+			}
+
+			//If there is properties left, then start linking
+			if(count($Link) > 0){
+				if(method_exists($this->_CI->_INTERNAL_DATABASE_MODEL, "Link")){
+					$Data = $this->_CI->_INTERNAL_DATABASE_MODEL->Link($Table,$Link,$this,$Select);
+					if(property_exists($this, $Property)){
+						self::_Link_Set_Data($Data,$Property,$Select);
+						if(count($Data) > 0){
+							if(!$Simple){
+								self::_Load_From_Class();
+							}
+							return TRUE;
+						} else {
+							return FALSE;
+						}
+					}
+				}
+			}
+		}
+		return FALSE;
+	}
+
+	/**
+	 * This function imports data from an array with the same key name as the local property to import too.
+	 * @param array $Array The data to import in Name => Value format
+	 * @param boolean $Override If this flag is set to true, then if the data is an array the clas $s data is overridden
+	 * @param boolean $Secure If this parameter is set to true, then the secure ignore check is done
+	 * @since 1.0
+	 * @access public
+	 */
+	public function Import($Array = NULL,$Override = false,$Secure = false){
+		if(!is_null($Array) && is_array($Array)){
+			foreach ($Array as $Property => $Value) {
+				$Import_Ignore = array();
+				if (property_exists($this, "_INTERNAL_IMPORT_IGNORE") && isset($this->_INTERNAL_IMPORT_IGNORE) && is_array($this->_INTERNAL_IMPORT_IGNORE)){
+					$Import_Ignore = $this->_INTERNAL_IMPORT_IGNORE;
+				}
+				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure,$Import_Ignore)){
+					if(self::_Has_Load_From_Class($Property)){
+						$ClassName = self::_Get_Load_From_Class_Data($Property);
+						$this->_CI->load->library($ClassName);
+						if (is_array($Value)) {
+							if(self::_Has_Interger_Keys($Value)){
+								if(self::_Has_Sub_Array($Value)){
+									$Temp = array();
+									foreach ($Value as $Key => $SubContent) {
+										if(is_array($SubContent) && self::_Has_Interger_Keys($SubContent)){
+											//Not Sure		
+										} else if(is_array($SubContent)){
+											$Object = new $ClassName();
+											if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+												$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+											}											
+											if(method_exists($Object, "Import")){
+												$Object->Import($SubContent);
+												self::_Merge_Array($Property,$Object,$Override);
+											} else {
+												self::_Merge_Array($Property,$SubContent,$Override);
+											}
+										} else if(is_integer($SubContent)){
+											$Temp[] = $SubContent;
+										} else if(!is_null($SubContent)){ // Could be an error
+											$Temp[] = $SubContent;
+										}
+									}
+									self::_Merge_Array($Property,$Temp,$Override);
+								} else {
+									self::_Merge_Array($Property,$Value,$Override);
+								}
+							} else {
+								$Object = new $ClassName();
+								if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+									$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+								}
+								if(method_exists($Object, "Import")){
+									$Object->Import($Value);
+									self::_Merge_Array($Property,$Object,$Override);
+								} else {
+									self::_Merge_Array($Property,$Value,$Override);
+								}
+							}
+						} else if (is_integer($Value)) {
+							$this->{$Property} = $Value;
+						} else if(!is_null($Value)){ //Can be an error, build for later use
+							$this->{$Property} = $Value;
+						}
+					} else {
+						self::_Merge_Array($Property,$Value,$Override);
+					}
+				}
+			}
+		} else {
+			return FALSE;
+		}
+		self::_Load_From_Class();
+		self::_Force_Array();
+		self::_Convert_To_Boolean();
+		return TRUE;
+	}
+
+	/**
+	 * This function processes input and calls the correct input function for it
+	 * @since 1.21
+	 * @access private
+	 * @param integer|object|array $arguments The input to process
+	 * @return integer|boolean
+	 */
+	private function _Process_Input ( $arguments ) {
+		if ( !is_null($arguments) ) {
+			if ( is_integer($arguments) ) {
+			return self::Load( $arguments );
+			} else if ( is_array( $arguments ) ) {
+				return self::Import( $arguments );
+			} else if ( is_object($arguments) ) {
+				return self::Add( $arguments );
+			} else if ( property_exists($this, "id") && isset($this->id) ) {
+				return $this->id;
+			}
+		}
 	}
 
 	/**
@@ -765,35 +1196,21 @@ class Std_Library{
 	}
 
 	/**
-	 * This function returns an array of the database name convert array
-	 * @since 1.1
-	 * @access public
+	 * This function returns the fields of the class
+	 * @since 1.21
+	 * @access private
+	 * @todo Add the fields of the child classes too like,
+	 * array (
+	 *    "property" => array(
+	 *        "id",
+	 *        "name"
+	 *    ),
+	 *    "name"
+	 * );
 	 * @return array
 	 */
-	public function Database_Rows(){
-		$Variables = self::Export(false,true);
-		$Return = array();
-		$Convert = $this->_INTERNAL_DATABASE_MODEL->Get_Names($this);
-		foreach ($Variables as $Key => $Value) {
-			if((isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && (!in_array($Key, $this->_INTERNAL_DATABASE_EXPORT_INGNORE)) || ($Key == "id" || $Key == "id")) || !isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE)){
-				if(!is_null($Convert) && is_array($Convert) && array_key_exists($Key, $Convert)){
-					$Return[$Convert[$Key]] = $Value;
-				} else {
-					$Return[$Key] = $Value;
-				}
-			}
-		}
-		return $Return;
-	}
-
-	/**
-	 * This function returns an array of the database convertion table
-	 * @since 1.1
-	 * @access public
-	 * @return array
-	 */
-	public function Database_Names(){
-		return $this->_INTERNAL_DATABASE_MODEL->Get_Names($this);
+	private function _Get_Fields () {
+		return array_keys(self::Export(true,false,false));
 	}
 
 	/**
@@ -834,13 +1251,14 @@ class Std_Library{
 
 	/**
 	 * This function Links data, based on data from an array.
+	 * @param array $Fields The field selector array
 	 * @since 1.1
 	 * @access private
 	 */
-	private function _Load_Link(){
+	private function _Load_Link(array $Fields = NULL){
 		if(property_exists($this, "_INTERNAL_PROPERTY_LINK") && isset($this->_INTERNAL_PROPERTY_LINK) && !is_null($this->_INTERNAL_PROPERTY_LINK) && is_array($this->_INTERNAL_PROPERTY_LINK)){
 			foreach ($this->_INTERNAL_PROPERTY_LINK as $Property => $Data) {
-				if(property_exists($this, $Property) && !is_null($this->{$Property})){
+				if(property_exists($this, $Property) && !is_null($this->{$Property}) && (is_null($Fields) || (!is_null($Fields) && is_array($Fields) && in_array($Property, $Fields)))){
 					$Table = $Data[0];
 					$Row = $Data[1];
 					if(isset($Data[2])){
@@ -892,14 +1310,15 @@ class Std_Library{
 	/**
 	 * This function loops through the settings property _INTERNAL_LINK_PROPERTIES,
 	 * and links the deffined properties with data from other database tables
+	 * @param array $Fields The field selector array
 	 * @see Link
 	 * @access private
 	 * @since 1.0
 	 */
-	private function _Link_Properties(){
+	private function _Link_Properties(array $Fields = NULL){
 		if(property_exists($this, "_INTERNAL_LINK_PROPERTIES") && isset($this->_INTERNAL_LINK_PROPERTIES) && !is_null($this->_INTERNAL_LINK_PROPERTIES) && is_array($this->_INTERNAL_LINK_PROPERTIES)){
 			foreach ($this->_INTERNAL_LINK_PROPERTIES as $ClassProperty => $LinkData) {
-				if(is_array($LinkData)){
+				if(is_array($LinkData) && (is_null($Fields) || (!is_null($Fields) && is_array($Fields) && in_array($ClassProperty, $Fields)))){
 					$Table = $LinkData[0];
 					$Query = $LinkData[1];
 					if(isset($LinkData[2])){
@@ -996,85 +1415,6 @@ class Std_Library{
 			return is_integer($Input);
 		}
 	}
-
-	/**
-	 * This function imports data from an array with the same key name as the local property to import too.
-	 * @param array $Array The data to import in Name => Value format
-	 * @param boolean $Override If this flag is set to true, then if the data is an array the clas $s data is overridden
-	 * @param boolean $Secure If this parameter is set to true, then the secure ignore check is done
-	 * @since 1.0
-	 * @access public
-	 */
-	public function Import($Array = NULL,$Override = false,$Secure = false){
-		if(!is_null($Array) && is_array($Array)){
-			foreach ($Array as $Property => $Value) {
-				$Import_Ignore = array();
-				if (property_exists($this, "_INTERNAL_IMPORT_IGNORE") && isset($this->_INTERNAL_IMPORT_IGNORE) && is_array($this->_INTERNAL_IMPORT_IGNORE)){
-					$Import_Ignore = $this->_INTERNAL_IMPORT_IGNORE;
-				}
-				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure,$Import_Ignore)){
-					if(self::_Has_Load_From_Class($Property)){
-						$ClassName = self::_Get_Load_From_Class_Data($Property);
-						$this->_CI->load->library($ClassName);
-						if (is_array($Value)) {
-							if(self::_Has_Interger_Keys($Value)){
-								if(self::_Has_Sub_Array($Value)){
-									$Temp = array();
-									foreach ($Value as $Key => $SubContent) {
-										if(is_array($SubContent) && self::_Has_Interger_Keys($SubContent)){
-											//Not Sure		
-										} else if(is_array($SubContent)){
-											$Object = new $ClassName();
-											if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
-												$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
-											}											
-											if(method_exists($Object, "Import")){
-												$Object->Import($SubContent);
-												self::_Merge_Array($Property,$Object,$Override);
-											} else {
-												self::_Merge_Array($Property,$SubContent,$Override);
-											}
-										} else if(is_integer($SubContent)){
-											$Temp[] = $SubContent;
-										} else if(!is_null($SubContent)){ // Could be an error
-											$Temp[] = $SubContent;
-										}
-									}
-									self::_Merge_Array($Property,$Temp,$Override);
-								} else {
-									self::_Merge_Array($Property,$Value,$Override);
-								}
-							} else {
-								$Object = new $ClassName();
-								if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
-									$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
-								}
-								if(method_exists($Object, "Import")){
-									$Object->Import($Value);
-									self::_Merge_Array($Property,$Object,$Override);
-								} else {
-									self::_Merge_Array($Property,$Value,$Override);
-								}
-							}
-						} else if (is_integer($Value)) {
-							$this->{$Property} = $Value;
-						} else if(!is_null($Value)){ //Can be an error, build for later use
-							$this->{$Property} = $Value;
-						}
-					} else {
-						self::_Merge_Array($Property,$Value,$Override);
-					}
-				}
-			}
-		} else {
-			return FALSE;
-		}
-		self::_Load_From_Class();
-		self::_Force_Array();
-		self::_Convert_To_Boolean();
-		return TRUE;
-	}
-
 
 	/**
 	 * This function checks if a property exists in the force array settings array
@@ -1513,29 +1853,6 @@ class Std_Library{
 	}
 
 	/**
-	 * This function saves the local class data to the database row of the Id property
-	 * @return string This function can return a error string
-	 * @todo Make the linked properties be saved to, and with the an updated id, etc SeriesId = $this->id
-	 * @since 1.0
-	 * @access public
-	 */
-	public function Save() {
-		if(isset($this->_CI) && !is_null($this->_CI) && isset($this->_CI->_INTERNAL_DATABASE_MODEL) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL) ){
-			if(self::_Not_Allowed_Dublicate_Rows() === false || self::_Overwrite_On_Dublicate() === true){
-				self::_Save_Childrens_Before();
-				$this->_CI->_INTERNAL_DATABASE_MODEL->Save($this);		
-				self::_Save_Linked_Properties();
-				self::_Save_ChildClasses_Properties();
-				return true;
-			} else {
-				return FALSE;
-			}
-		} else {
-			return false;
-		}
-	}
-
-	/**
 	 * This function removes the key/keys with the specific value
 	 * @param object $Property The property to search in
 	 * @param string|boolean|integer $Value    The value to search for
@@ -1636,60 +1953,6 @@ class Std_Library{
 				}
 			}
 		}
-	}
-
-	/**
-	 * This function links a class property to data collected from other databases
-	 * @param string||array $Table    The table(s) to search in
-	 * @param array $Link     An array in this format array("Row Name" => "Class property or  a value"...) 
-	 * with the search queries to search with.
-	 * @param string $Property The class property to link
-	 * @param boolean $Simple if this flag is set to true, then the load from class isn't executed
-	 * @param array $Select The rows to select/use
-	 * @since 1.0
-	 * @return boolean If success or fail
-	 * @access public
-	 */
-	public function Link ( $Table = NULL, $Link = NULL, $Property = NULL, $Simple = false, $Select = NULL ) {
-		if(!is_null($Table) && !is_null($Link) && is_array($Link) && !is_null($Property)){
-
-			//Check if the properties exists else remove them from the list
-			foreach($Link as $Search => $Key){
-				if($Search == "" || $Key == ""){
-					unset($Link[$Search]);
-				} else {
-					if(property_exists($this, $Key)){
-						if(is_null($this->{$Key})){
-							unset($Link[$Search]);
-						}
-						else if($this->{$Key} == ""){
-							unset($Link[$Search]);
-						} else {
-							$Link[$Search] = $this->{$Key};
-						}
-					}
-				}
-			}
-
-			//If there is properties left, then start linking
-			if(count($Link) > 0){
-				if(method_exists($this->_CI->_INTERNAL_DATABASE_MODEL, "Link")){
-					$Data = $this->_CI->_INTERNAL_DATABASE_MODEL->Link($Table,$Link,$this,$Select);
-					if(property_exists($this, $Property)){
-						self::_Link_Set_Data($Data,$Property,$Select);
-						if(count($Data) > 0){
-							if(!$Simple){
-								self::_Load_From_Class();
-							}
-							return TRUE;
-						} else {
-							return FALSE;
-						}
-					}
-				}
-			}
-		}
-		return FALSE;
 	}
 
 	/**
@@ -1854,87 +2117,6 @@ class Std_Library{
 	}
 
 	/**
-	 * This function returns all the class variable with name and values as an array
-	 * @return array All the class vars and values
-	 * @param boolean $Database If this flag is set to true, the data will be exported so the key names,
-	 * fits the database row names
-	 * @param boolean $Secure If this flag is set to true, then the $_INTERNAL_SECURE_EXPORT_IGNORE is used to ignore
-	 * not public rows.
-	 * @since 1.0
-	 * @access public
-	 * @return array The class data as an array
-	 */
-	public function Export ($Database = false,$Secure = false) {
-		if ($Database) {
-			$Array = array();
-			$Ignore = NULL;
-			//Loop through all class properties
-			foreach (get_class_vars(get_class($this)) as $Name => $Value) {
-
-				//If the property is the CodeIgniter instance, the id or an internal property dont do anything
-				if (!self::Ignore($Name,$Ignore) && !is_null($this->{$Name}) && !self::_Is_Linked_Property($Name)) {
-					$Data = $this->{$Name};
-					if(self::_Contains_Object($Data) && !self::_Is_Property_Linked_Row($Name)){
-						$Data = self::_Convert_From_Object($Data);
-					}
-
-					if($Database){
-						if(self::_Is_Property_Linked_Row($Name)){
-							$Data = self::_Property_Linked_Row_Export($Data,$Name);
-						}
-					}
-
-					//If the class has an name convert table, check if the current property exists in it
-					// , if it does use that as the array key
-					if(property_exists($this, "_INTERNAL_DATABASE_NAME_CONVERT") 
-						&& isset($this->_INTERNAL_DATABASE_NAME_CONVERT)
-						&& is_array($this->_INTERNAL_DATABASE_NAME_CONVERT) 
-						&& array_key_exists($Name, $this->_INTERNAL_DATABASE_NAME_CONVERT)
-						&& !is_null($this->_INTERNAL_DATABASE_NAME_CONVERT)) {
-
-						//If the data is an array implode it with a ";" sign else just assign it
-						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && $Data != "NULL"){
-							$String = ";";
-							$String .= implode(";",$Data);
-							$String .= ";";
-							$String = str_replace(";NULL", "", $String);
-							if($String != "" && $String != ";"){
-								$Array[$this->_INTERNAL_DATABASE_NAME_CONVERT[$Name]] = $String;
-							}
-						} else if(!is_null($Data) && $Data != "NULL"){
-							$Array[$this->_INTERNAL_DATABASE_NAME_CONVERT[$Name]] = $Data;
-						}
-					} else {
-						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && !self::_Contains_Object($Data) && $Data != "NULL"){
-							$String = ";".implode(";",$Data).";";
-							$String = str_replace(";NULL", "", $String);
-							if($String != "" && $String != ";"){
-								$Array[$Name] = $String;
-							}
-						} else if(!is_null($Data) && $Data != "NULL"){
-							$Array[$Name] = $Data;
-						}
-					}
-				}
-			}
-		} 
-		else if(!$Database && !$Secure){
-			$Array = array();
-			$Array = self::_Normal_Export();
-		} else if($Secure){
-			if(property_exists($this, "_INTERNAL_SECURE_EXPORT_IGNORE") && isset($this->_INTERNAL_SECURE_EXPORT_IGNORE) && !is_null($this->_INTERNAL_SECURE_EXPORT_IGNORE) && is_array($this->_INTERNAL_SECURE_EXPORT_IGNORE)){
-				$Array = array();
-				$Array = self::_Secure_Export();
-			} 
-			else {
-				$Array = array();
-				$Array = self::_Normal_Export(true);
-			}
-		}
-		return $Array;
-	}
-
-	/**
 	 * This function uses the $_INTERNAL_SECURE_EXPORT_IGNORE,
 	 * to remove the properties that's not gonna be available for the public
 	 * @since 1.0
@@ -2014,44 +2196,6 @@ class Std_Library{
 	}
 
 	/**
-	 * This function checks the local settings variable for export,
-	 * to see if the $Key exists in one of them or if the Key contains the _INTERNAL keyword
-	 * @param string||integer $Key         The key to check
-	 * @param array $ExtraIgnore Some extra ignore rules if nessesary
-	 * @return boolean if to be ignored true is returned else is false returned
-	 * @access public
-	 * @since 1.0
-	 */
-	public function Ignore($Key = NULL,$ExtraIgnore = NULL){
-		if(!is_null($Key)){
-			if(!strpos($Key, "INTERNAL_") === false){
-				return true;
-			} else {
-				if(property_exists($this, "_INTERNAL_EXPORT_INGNORE") && isset($this->_INTERNAL_EXPORT_INGNORE) && !is_null($this->_INTERNAL_EXPORT_INGNORE)){
-					if(in_array($Key,$this->_INTERNAL_EXPORT_INGNORE)){
-						return true;
-					} else {
-						if(!is_null($ExtraIgnore) && in_array($Key, $ExtraIgnore)){
-							return true;
-						} else {
-							return false;
-						}
-					}
-				} else {
-					if(!is_null($ExtraIgnore) && in_array($Key, $ExtraIgnore)){
-						return true;
-					} else {
-						return false;
-					}
-				}
-			}
-		} else {
-			return true;
-		}
-	}
-	
-
-	/**
 	 * This function removes local data, set the id flag to true to remove the id too.
 	 * @param boolean $Id If this is set to true then the id is cleared too
 	 * @since 1.0
@@ -2104,8 +2248,8 @@ class Std_Library{
 
 	/**
 	 * This function only sets the output if input exists
-	 * @param object||string||number &$Input  The input data to check if exists
-	 * @param object||string||number &$Output The output data to set if the input isset
+	 * @param object|string|number &$Input  The input data to check if exists
+	 * @param object|string|number &$Output The output data to set if the input isset
 	 * @since 1.0
 	 * @access private
 	 */
@@ -2133,115 +2277,6 @@ class Std_Library{
 				}
 			}
 			
-		}
-	}
-
-	/**
-	 * This function refresh the class data from the database
-	 * @see self::Load
-	 * @since 1.0
-	 * @return boolean If success or fail
-	 * @access public
-	 */
-	public function Refresh(){
-		if(property_exists($this, "id")){
-			if(!is_null($this->id)){
-				if(method_exists($this, "Load")){
-					return self::Load($this->id);
-				}
-			}
-		}
-	}
-
-	/**
-	 * This function delete's data local in the class, but if selected it can also delete the data from the database
-	 * @param boolean $Database If this flag is set too true, the database data will be deleted too
-	 * @since 1.0
-	 * @access public
-	 * @return object This function returns this object
-	 * @todo Add hierrachy delete function
-	 */
-	public function Delete($Database = true){
-		if($Database){
-			if(method_exists($this, "_RemoveDatabaseData") && isset($this->id)){
-				self::_RemoveDatabaseData($this->id,$this->Database_Table);
-			}
-			if(method_exists($this, "_RemoveUserData")){
-				self::_RemoveUserData(true);
-			}
-		}
-		else{
-			if(method_exists($this, "_RemoveUserData")){
-				self::_RemoveUserData(false);
-			}
-		}
-		return $this;
-	}
-
-	/**
-	 * This function takes the data from the $Array parameter and adds it to the local data,
-	 * and if the database flag is set the data will be saved too. 
-	 * @param array  $Array    The data in Name => Value format
-	 * @param boolean $Database If this flag is set too true the data is saved too
-	 * @access public
-	 * @since 1.0
-	 */
-	public function Create($Array =  NULL,$Database = false){
-		if(!is_null($Array)){
-			self::_SetDataArray($Array);
-			if($Database && !is_null($this->_CI) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
-				$this->id = $this->_CI->_INTERNAL_DATABASE_MODEL->Create($this);
-				return $this->id;
-			}
-		}
-	}
-
-	/**
-	 * This function adds data, to this class either from a class or from an array,
-	 * and if the Database flag is set to true the data will be saved to the database.
-	 * @param object  &$Class   This parameter should contain a class that has the data to add deffined,
-	 * with the same variable names, as this class. Not all variables need to be deffined only create them you need to.
-	 * @param array  $Array    If this parameter is set and $Class is null the data from this parameter is used in Name => Value format
-	 * @param boolean $Database If this flag is set to true, then the data will be saved in the database too
-	 * @access public
-	 * @since 1.0
-	 */
-	public function Add(&$Class = NULL,$Array = NULL, $Database = false){
-		if(!is_null($Class)){
-			self::_SetDataClass($Class);
-		}
-		else{
-			if(!is_null($Array)){
-				self::_SetDataArray($Array);
-			}
-			else{
-				return 400;	
-			}
-		}
-		if($Database && !is_null($this->id) && !is_null($this->_CI) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
-			$this->id = $this->_CI->_INTERNAL_DATABASE_MODEL->Create($this);
-			return $this->id;
-		}
-	}
-
-	/**
-	 * This function is used to load based under a query.
-	 * The data row names is converted so in the query use the names of the class properties.
-	 * @param array $Query The query array
-	 * @since 1.1
-	 * @access public
-	 * @return boolean If it was a success
-	 */
-	public function Find($Query = NULL){
-		if (!is_null($Query) && is_array($Query)) {
-			$Data = $this->_CI->_INTERNAL_DATABASE_MODEL->Find($Query,$this->Database_Table,$this);
-			if($Data !== false){
-				return self::Load($Data);
-			} else {
-				return FALSE;
-			}
-		} else {
-			return FALSE;
 		}
 	}
 }
