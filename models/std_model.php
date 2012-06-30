@@ -299,7 +299,7 @@ class Std_Model extends CI_Model{
 	 * @return integer The new database id
 	 */
 	public function Create(&$Class){
-		if(method__Exists($Class, "Export") && property__Exists(get_class($Class), "Database_Table")){
+		if(method_exists($Class, "Export") && property_exists(get_class($Class), "Database_Table")){
 			$data = $Class->Export(true);
 			$this->CI->db->insert($Class->Database_Table, $data); 
 			return $this->CI->db->insert_id();
@@ -314,16 +314,16 @@ class Std_Model extends CI_Model{
 	 * @return boolean If the operation was succes
 	 */
 	public function Save(&$Class = NULL){
-		if( property__Exists($Class, "Database_Table")){
-			self::_Data__Exists($Class);
+		if( property_exists($Class, "Database_Table")){
+			self::_Data_Exists($Class);
 			if((isset($Class->id) || isset($Class->id)) && self::_Exists($Class->id,$Class->Database_Table)){
 
-				if (method__Exists($Class, "Data_Updated")) {
+				if (method_exists($Class, "Data_Updated")) {
 					$Class->Data_Updated();
 				}
 				
 				$Data = $Class->Export(true);
-				if(property__Exists($Class, "Database_Table") && count($Data) > 0){
+				if(property_exists($Class, "Database_Table") && count($Data) > 0){
 					$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
 					return true; //Maybe a check for mysql errors
 				} else {
@@ -339,18 +339,18 @@ class Std_Model extends CI_Model{
 				}
 				if(!self::_Exists($Id)){
 
-					if (method__Exists($Class, "Data_Updated")) {
+					if (method_exists($Class, "Data_Updated")) {
 						$Class->Data_Updated();
 					}
 
-					if (method__Exists($Class, "Data_Created")) {
+					if (method_exists($Class, "Data_Created")) {
 						$Class->Data_Created();
 					}
 					
 					$Data = $Class->Export(true);
 					if(!is_null($Data) && !is_null($Class) && count($Data) > 0){
 						$this->db->insert($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
-						if(property__Exists($Class, "id")){
+						if(property_exists($Class, "id")){
 							$Class->id = $this->db->insert_id();
 						} else {
 							$Class->id = $this->db->insert_id();
@@ -400,7 +400,7 @@ class Std_Model extends CI_Model{
 	 */
 	private function _Check_For_Data_Dublicate(&$Class = NULL){
 		if(!is_null($Class)){
-			if(property__Exists($Class, "_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL") && !is_null($Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL) && is_bool($Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL)){
+			if(property_exists($Class, "_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL") && !is_null($Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL) && is_bool($Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL)){
 				return $Class->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL;
 			} else {
 				return TRUE;
@@ -446,10 +446,10 @@ class Std_Model extends CI_Model{
 	 * @access private
 	 * @return boolean If dublicate data _Exists
 	 */
-	private function _Data__Exists(&$Class = NULL){
+	private function _Data_Exists(&$Class = NULL){
 		if(!is_null($Class)){
 			if(self::_Has_Duplicate() != false){
-				if(property__Exists($Class, "id")){
+				if(property_exists($Class, "id")){
 					$Class->id = self::_Get_Duplicate_Id($Class);
 					return TRUE;
 				}
@@ -477,12 +477,12 @@ class Std_Model extends CI_Model{
 				$QueryData["id"] = "!= ".$Class->id;
 			}
 			$QueryData = self::_Convert_Properties_To_Database_Row($QueryData,$Class);
-			if(property__Exists($Class, "Database_Table")){
+			if(property_exists($Class, "Database_Table")){
 				$Query = $this->db->limit(1)->get_where($Class->Database_Table,$QueryData);
 				if($Query->num_rows() > 0){
 					foreach ($Query->result() as $Row) {
-						if(property__Exists($Class, "id")){
-							if(!property__Exists($Row, "id")){
+						if(property_exists($Class, "id")){
+							if(!property_exists($Row, "id")){
 								$Class->id = $Row->id;
 								return TRUE;
 							} else {
@@ -525,7 +525,7 @@ class Std_Model extends CI_Model{
                     $Or_Like[$Key] = $Value;
                 }
             }
-            if(property__Exists($Class, "id")){
+            if(property_exists($Class, "id")){
             	$Select = "id";
             } else {
             	$Select = "id";

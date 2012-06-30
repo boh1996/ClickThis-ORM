@@ -7,7 +7,7 @@
  * @subpackage Std Data Library Template
  * @category Library template
  * @package ClicKThis
- * @version 1.21
+ * @version 1.3
  * @author Illution <support@illution.dk>
  */ 
 class Std_Library{
@@ -279,6 +279,58 @@ class Std_Library{
 	public static $_INTERNAL_IMPORT_IGNORE = NULL;
 
 	/**
+	 * This array contains the keywords to ignore when exporting
+	 * @var array
+	 * @since 1.3
+	 * @access public
+	 */
+	public static $_INTERNAL_KEYWORD_IGNORE = NULL;
+
+	/**
+	 * This function can be used to set the sorting function and options for sorting
+	 * the export output
+	 * @example
+	 * array ("sort_function",array("sort_options"));
+	 * @var array
+	 * @since 1.3
+	 * @access public
+	 */
+	public static $_INTERNAL_EXPORT_SORTING = null;
+
+	/**
+	 * The database export array implode delemiter
+	 * @since 1.3
+	 * @access public
+	 * @var string
+	 */
+	public $_INTERNAL_EXPORT_DELEMITER = ";";
+
+	/**
+	 * This array can be used to define what properties that is going to be sorted
+	 * and with what
+	 * @since 1.3
+	 * @access public
+	 * @var array
+	 * @example
+	 * array("property" => array("sort_function", array("sort_options")))
+	 */
+	public static $_INTERNAL_SORT_PROPERTIES = NULL;
+
+	/**
+	 * This property is used when exporting,
+	 * to set a export formating filter for the outputted data
+	 * @since 1.3
+	 * @access public
+	 * @var array
+	 * @example
+	 * "property" => array("formating_function", "formating option")
+	 * "property" => array("date", "Y-d-m")
+	 */
+	public static $_INTERNAL_EXPORT_FORMATING = NULL;
+
+	############################# Private Properties #################################
+
+	/**
 	 * This property will contain a local instance of CodeIgniter,
 	 * if the children set's it
 	 * @var object
@@ -286,6 +338,22 @@ class Std_Library{
 	 * @access private
 	 */
 	private $_CI = NULL;
+
+	/**
+	 * This array contains the std_library properties which is going to be ignored on export
+	 * @var array
+	 * @since 1.3
+	 * @access private
+	 */
+	private $_INTERNAL_PROPERTIES = array("Database_Table","_CI");
+
+	/**
+	 * This array contains the keywords to look for and ignore
+	 * @since 1.3
+	 * @access private
+	 * @var array
+	 */
+	private $_INTERNAL_PROPERTY_KEYWORD_IGNORE = array("_INTERNAL");
 
 	/**
 	 * This function is the constructor
@@ -593,15 +661,16 @@ class Std_Library{
 	 * This function is used to load based under a query.
 	 * The data row names is converted so in the query use the names of the class properties.
 	 * @param array $Query The query array
+	 * @param array $Field An optional field selector, for selecting wheat fields to load
 	 * @since 1.1
 	 * @access public
 	 * @return boolean If it was a success
 	 */
-	public function Find($Query = NULL){
+	public function Find($Query = NULL,$Fields = NULL){
 		if (!is_null($Query) && is_array($Query)) {
 			$Data = $this->_CI->_INTERNAL_DATABASE_MODEL->Find($Query,$this->Database_Table,$this);
 			if($Data !== false){
-				return self::Load($Data);
+				return self::Load($Data,false,$Fields);
 			} else {
 				return FALSE;
 			}
@@ -749,7 +818,9 @@ class Std_Library{
 		if(is_null($Arguments)){
 			$Arguments = array();
 		}
+		$FillFields = false;
 		if (is_null($Fields) || !is_array($Fields)) {
+			$FillFields = true;
 			$Fields = self::_Get_Fields();
 		}
 		foreach ($Parameters as $Index => $Parameter) {
@@ -762,7 +833,7 @@ class Std_Library{
 			$Id = $this->id;
 		} else {
 			throw new Exception("Not a valid id specified", 1);
-			return;
+			return false;
 		}
 		if(!is_null($Id) && isset($this->_CI->_INTERNAL_DATABASE_MODEL) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
 			if(!$this->_CI->_INTERNAL_DATABASE_MODEL->Load($Id,$this,$Fields)){
@@ -770,11 +841,12 @@ class Std_Library{
 			}
 		} else {
 			throw new Exception("No model deffined", 1);
-			return;	
+			return false;	
 		}
 
-		if (property_exists($this, "_INTERNAL_DATABASE_EXPORT_INGNORE") && isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && is_array($this->_INTERNAL_DATABASE_EXPORT_INGNORE)) {
+		if (property_exists($this, "_INTERNAL_DATABASE_EXPORT_INGNORE") && isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && is_array($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && $FillFields == true) {
 			$Fields = array_merge($this->_INTERNAL_DATABASE_EXPORT_INGNORE,$Fields);
+			print_r(self::Export(true,false,false));
 			$Fields = array_unique($Fields);
 		}
 
@@ -796,86 +868,430 @@ class Std_Library{
 		return self::Load($Id,true,array("id"));
 	}
 
+	public function Export ( $fields = NULL ,$ignore_empty = true, $ignore = null ) {
+		/*
+			Idear could be to remve the secure export,
+			and instead add access scopes, and all properties that is not accessible with that scope is ignored,
+			and the same system should be used in Import.
+			The should be a read scope and a write scope property
+			like : _INTERNAL_READ_SCOPES and _INTERNAL_WRITE_SCOPES
+		*/
+		/*
+			Ignore List:
+				Internal properties - Done
+				Internal keywords - Done
+				Export Ignore - Done
+				Secure ignore - Done
+		*/		
+		/*
+			Feature list:
+				Export formating - Done
+				Export sorting - Done
+				Property sort - Done
+				Field selector - Done
+		*/	
+		/*
+			Todo : 
+				Export object
+				Scopes
+				Export Data types in export formating
+				Export or remove linked and property linked data
+		*/
+		$ignore_list = array(
+			"_INTERNAL_PROPERTIES",
+			"_INTERNAL_EXPORT_INGNORE",
+			"_INTERNAL_SECURE_EXPORT_IGNORE"
+		);
+
+		$ignored_properties = self::_Merge_Class_Properties_And_Data($ignore_list,$ignore);
+
+		$ignore_keywords_list = array(
+			"_INTERNAL_PROPERTY_KEYWORD_IGNORE"
+		);
+
+		$ignored_keywords = self::_Merge_Class_Properties_And_Data($ignore_keywords_list);
+
+		$exported =  self::_Export($this,$ignored_properties,$ignored_keywords,$ignore_empty,$fields);
+
+		$exported = self::_Export_Formating($exported);
+
+		return $exported;
+	}
+
 	/**
-	 * This function returns all the class variable with name and values as an array
-	 * @return array All the class vars and values
-	 * @param boolean $Database If this flag is set to true, the data will be exported so the key names,
-	 * fits the database row names
-	 * @param boolean $Secure If this flag is set to true, then the $_INTERNAL_SECURE_EXPORT_IGNORE is used to ignore
-	 * not public rows.
-	 * @since 1.0
-	 * @access public
-	 * @return array The class data as an array
+	 * This function does export formating
+	 * @since 1.3
+	 * @access private
+	 * @param array $data The data to format
 	 */
-	public function Export ($Database = false,$Secure = false, $Ignore_Empty = true ) {
-		if ($Database) {
-			$Array = array();
-			$Ignore = NULL;
-
-			//Loop through all class properties
-			foreach (get_class_vars(get_class($this)) as $Name => $Value) {
-
-				//If the property is the CodeIgniter instance, the id or an internal property dont do anything
-				if (!self::Ignore($Name,$Ignore) && (!is_null($this->{$Name}) || $Ignore_Empty == false) && !self::_Is_Linked_Property($Name)) {
-					$Data = $this->{$Name};
-					if(self::_Contains_Object($Data) && !self::_Is_Property_Linked_Row($Name)){
-						$Data = self::_Convert_From_Object($Data);
-					}
-
-					if($Database){
-						if(self::_Is_Property_Linked_Row($Name)){
-							$Data = self::_Property_Linked_Row_Export($Data,$Name);
+	private function _Export_Formating ( $data ) {
+		if (property_exists($this, "_INTERNAL_EXPORT_FORMATING") && isset($this->_INTERNAL_EXPORT_FORMATING) && is_array($this->_INTERNAL_EXPORT_FORMATING)) {
+			foreach ($data as $property => $value) {
+				if (array_key_exists($property, $this->_INTERNAL_EXPORT_FORMATING)) {
+					if (is_array($value)) {	
+						$array = array();
+						foreach ($value as $key => $content) {
+							$array[$key] = call_user_func_array($this->_INTERNAL_EXPORT_FORMATING[$property][0], array($this->_INTERNAL_EXPORT_FORMATING[$property][1],$content));
 						}
-					}
-
-					//If the class has an name convert table, check if the current property exists in it
-					// , if it does use that as the array key
-					if(property_exists($this, "_INTERNAL_DATABASE_NAME_CONVERT") 
-						&& isset($this->_INTERNAL_DATABASE_NAME_CONVERT)
-						&& is_array($this->_INTERNAL_DATABASE_NAME_CONVERT) 
-						&& array_key_exists($Name, $this->_INTERNAL_DATABASE_NAME_CONVERT)
-						&& !is_null($this->_INTERNAL_DATABASE_NAME_CONVERT)) {
-
-						//If the data is an array implode it with a ";" sign else just assign it
-						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && $Data != "NULL"){
-							$String = ";";
-							$String .= implode(";",$Data);
-							$String .= ";";
-							$String = str_replace(";NULL", "", $String);
-							if($String != "" && $String != ";"){
-								$Array[$this->_INTERNAL_DATABASE_NAME_CONVERT[$Name]] = $String;
-							}
-						} else if( (!is_null($Data) && $Data != "NULL") || ($Ignore_Empty == false) ){
-							$Array[$this->_INTERNAL_DATABASE_NAME_CONVERT[$Name]] = $Data;
-						}
+						$data[$property] = $array;
 					} else {
-						if(!is_null($Data) && is_array($Data) && count($Data) > 0 && !self::_Contains_Object($Data) && $Data != "NULL"){
-							$String = ";".implode(";",$Data).";";
-							$String = str_replace(";NULL", "", $String);
-							if($String != "" && $String != ";"){
-								$Array[$Name] = $String;
-							}
-						} else if((!is_null($Data) && $Data != "NULL") || ($Ignore_Empty == false) ){
-							$Array[$Name] = $Data;
-						}
+						$data[$property] = call_user_func_array($this->_INTERNAL_EXPORT_FORMATING[$property][0], array($this->_INTERNAL_EXPORT_FORMATING[$property][1],$value));
 					}
 				}
 			}
-		} 
-		else if(!$Database && !$Secure){
-			$Array = array();
-			$Array = self::_Normal_Export();
-		} else if($Secure){
-			if(property_exists($this, "_INTERNAL_SECURE_EXPORT_IGNORE") && isset($this->_INTERNAL_SECURE_EXPORT_IGNORE) && !is_null($this->_INTERNAL_SECURE_EXPORT_IGNORE) && is_array($this->_INTERNAL_SECURE_EXPORT_IGNORE)){
-				$Array = array();
-				$Array = self::_Secure_Export();
-			} 
-			else {
-				$Array = array();
-				$Array = self::_Normal_Export(true);
+			return $data;
+		} else {
+			return $data;
+		}
+	}
+
+	/**
+	 * This function exports a classes proprties to an array
+	 * @since 1.3
+	 * @access private
+	 * @param object  &$class            The class to export from
+	 * @param array  $ignore_properties An array containing the properties to ignire
+	 * @param array  $ignore_keywords   An array of keywords to ignore if the property name contains that keywords
+	 * @param boolean $ignore_empty      If the empty properties is going to be ignored
+	 * @param array  $fields            An optional array of fields to select
+	 */
+	private function _Export ( &$class = null, $ignore_properties = null, $ignore_keywords = null, $ignore_empty = true, $fields = null) {
+		if ( !is_null($class) && is_object($class) ) {
+			$class_data = get_class_vars(get_class($class));
+
+			if (is_array($class_data) && count($class_data) > 0) {
+
+				//Match keywords and ignore list
+				$class_data = self::_Check_Property_Names($class_data, $ignore_properties);
+				$class_data = self::_Check_Property_Against_Keywords($class_data, $ignore_keywords);
+
+				//Fill wity data and select fields
+				$class_data = self::_Export_Fill_With_Data($class_data,$fields);
+
+				//Remove Empty
+				$class_data = self::_Remove_Empty_Export($class_data, $ignore_empty);
+
+				//Sort Properties
+				$class_data = self::_Property_Sort($class_data);
+
+				//Sort data
+				$class_data = self::_Sort($class_data);
+
+				return $class_data;
+			} else {
+				return array();
+			}
+		} else {
+			return array();
+		}
+	}
+
+	/**
+	 * This function sorts the input data if there is a setting for it in _INTERNAL_SORT_PROPERTIES
+	 * @since 1.3
+	 * @access private
+	 * @param array $data The data to sort
+	 */
+	private function _Property_Sort ( $data ) {
+		if ( is_array($data) && property_exists($this, "_INTERNAL_SORT_PROPERTIES") && isset($this->_INTERNAL_SORT_PROPERTIES) && is_array($this->_INTERNAL_SORT_PROPERTIES)) {
+			foreach ($data as $property => $value) {
+				if (array_key_exists($property, $this->_INTERNAL_SORT_PROPERTIES)) {
+					$options = $this->_INTERNAL_SORT_PROPERTIES[$property][1];
+					$data[$key] = self::_Sort_Data($value,$this->_INTERNAL_SORT_PROPERTIES[$property][0],$options);
+				}
+			}
+		} else {
+			return $data;
+		}
+	}
+
+	/**
+	 * This function sortes the input data
+	 * @since 1.3
+	 * @access private
+	 * @param array $data     The data to sort
+	 * @param string $function The sort function to use
+	 * @param array $options  The sort options
+	 */
+	private function _Sort_Data ( $data, $function, $options) {
+		$options = array_merge(array($data), $options);
+		return call_user_func_array($function, $options);
+	}
+
+	/**
+	 * This function merges class properties and input data
+	 * @param array $properties A list of class properties that is going to be merged
+	 * @since 1.3
+	 * @access private
+	 * @return array
+	 */
+	private function _Merge_Class_Properties_And_Data ( array $properties ) {
+		$arguments = func_get_args();
+		unset($arguments[0]);
+
+		$return = array();
+
+		if (is_array($arguments) && count($arguments) > 0) {
+			foreach ($arguments as $index => $argument) {
+				if (!is_null($argument) && is_array($argument)) {
+					$return = array_merge($return,$argument);
+				}
+				
 			}
 		}
-		return $Array;
+
+		foreach ($properties as $index => $property) {
+			if (property_exists($this, $property) && !is_null($this->{$property}) && is_array($this->{$property})){
+				$return = array_merge($return,$this->{$property});
+			}
+		}
+
+		$return = array_unique($return);
+
+		return $return;
+	}
+
+	public function Database () {
+		/*
+			Ignore List:
+				Property Link
+				Linked Properties
+				Database Ignore
+				Internal properties
+				Internal keywords
+		*/			
+		/*
+			Features:
+				Implode all arrays
+				Remove property linked rows
+		*/
+		$exported = null;
+			
+		foreach ($exported as $property => $value) {
+			
+		}
+	}
+
+	/**
+	 * This function exports all objects in an array or just one ojbect
+	 * @since 1.3
+	 * @access private
+	 * @param array|object $input    The object or the array containing the objects
+	 * @param string $function The object function to use
+	 * @param array  $params   The object function params to use
+	 */
+	private function _Export_Objects_From_Data ( $input,  $function = "Export" ,$params = array()) {
+		if (is_array($input)) {
+			$array = arrat();
+			foreach ($input as $key => $object) {
+				if ( is_object($input) ) {
+					if ( method_exists($input, $function) ) {
+						$array[] = call_user_func_array(array($input,$function), $params);
+					} else {
+						$array[] = get_class_vars(get_class($input));
+					}
+				} else {
+					$array[] = $object;
+				}
+			}
+		} else if ( is_object($input) ) {
+			if ( method_exists($input, $function) ) {
+				return call_user_func_array(array($input,$function), $params);
+			} else {
+				return get_class_vars(get_class($input));
+			}
+		} else {
+			return $input;
+		}
+	}
+
+	/**
+	 * This function takes the class data and adds it to the array
+	 * @since 1.3
+	 * @access private
+	 * @param array $class_data The data to parse
+	 * @param array $fields     An optional field selector
+	 */
+	private function _Export_Fill_With_Data ( $class_data, $fields ) {
+		foreach ($class_data as $property => $value) {
+			$class_data[$property] = $this->{$property};
+			if (!is_null($fields) && is_array($fields) && !in_array($property, $fields)) {
+				unset($class_data[$property]);
+			}
+		}
+		return $class_data;
+	}
+
+	/**
+	 * This function removes the empty data if the ignore_empty flag is true
+	 * @since 1.3
+	 * @access private
+	 * @param array  $data         The data to parse
+	 * @param boolean $ignore_empty A flag to set if the empty data is ignored or not
+	 */
+	private function _Remove_Empty_Export ( $data, $ignore_empty = true) {
+		foreach ($data as $property => $value) {
+			if (is_null($value) && $ignore_empty === true) {
+				unset($data[$property]);
+			}
+		}
+		return $data;
+	}
+
+	/**
+	 * This function implodes an array with the specified delemiter,
+	 * if a delemiter isn't set then the _INTERNAL_EXPORT_DELEMITER is used or else is ";" used
+	 * @param array $array     The array to implode
+	 * @since 1.3
+	 * @access private
+	 * @param string $delemiter The delemiter to use
+	 * @return string
+	 */
+	private function _Implode ( $array, $delemiter = null ) {
+		if (is_null($delemiter)) {
+			$delemiter = (!property_exists($this, "_INTERNAL_EXPORT_DELEMITER") && !is_null($this->_INTERNAL_EXPORT_DELEMITER))? $this->_INTERNAL_EXPORT_DELEMITER : ";";
+		}
+		$string = $delemiter;
+		$string .= implode($delemiter,$array);
+		$string .= $delemiter;
+		$string = str_replace($delemiter."NULL", "", $string);
+		return $string;
+	}
+
+	/**
+	 * This function implodes an array using the self::_Implode function
+	 * @since 1.3
+	 * @access private
+	 * @param array|object $data The array or object to implode
+	 */
+	private function _Implode_Array ( $data ) {
+		if (is_array($data)) {
+			foreach ($data as $key => $value) {
+				if (is_array($value)) {
+					$data[$key] = self::_Implode($value);
+				}
+			}
+			return $data;
+		} else if (is_object($data)) {
+			return self::_Implode_Array(get_object_vars($data));
+		} else {
+			return $data;
+		}
+	}
+
+	/**
+	 * This function sorts the exported output using the settings in _INTERNAL_EXPORT_SORTING
+	 * @param array $data The data to sort
+	 * @since 1.3
+	 * @return array
+	 * @access private
+	 */
+	private function _Sort ( $data ) {
+		if ( property_exists($this, "_INTERNAL_EXPORT_SORTING") && !is_null($this->_INTERNAL_EXPORT_SORTING) && is_array($this->_INTERNAL_EXPORT_SORTING)) {
+			$options = array();
+			$options[] =& $data;
+			if (isset($this->_INTERNAL_EXPORT_SORTING[1])) {
+				$options = array_merge($options,$this->_INTERNAL_EXPORT_SORTING[1]);
+			}
+			call_user_func_array($this->_INTERNAL_EXPORT_SORTING[0], $options);
+			return $data;
+		} else {
+			return $data;
+		}
+	}
+
+	/**
+	 * This function checks through an array for precise matches of strings to ignore
+	 * @since 1.3
+	 * @access private
+	 * @return array
+	 * @param array $input  The input array to match
+	 * @param array $ignore The ignore array to match against
+	 */
+	private function _Check_Property_Names (  $input = null, $ignore = null ) {
+		if (!is_null($input) && is_array($ignore)){
+			foreach ($input as $property => $value) {
+				if ( in_array($property, $ignore) ) {
+					unset($input[$property]);
+				}
+			}
+			return (count($input) > 0)? $input : array();
+		} else {
+			if (is_array($input)) {
+				return $input;
+			} else {
+				return array();
+			}
+		}
+	}
+
+	/**
+	 * This function matches a string or array agains a string or an array
+	 * @since 1.3
+	 * @access private
+	 * @param array|string $input    The string or array to match
+	 * @param array|string $keywords The string or array to match against
+	 * @return array|string
+	 */
+	private function _Check_Property_Against_Keywords ( $input = null, $keywords = null ) {
+		if (is_array($input)) {
+			foreach ($input as $property => $value) {
+				if (self::_Check_String($property,$keywords)) {
+					unset($input[$property]);
+				}
+			}
+			return (count($input) > 0)? $input : null;
+		} else {
+			if (!self::_Check_String($input,$keywords)) {
+				return $input;
+			} else {
+				return null;
+			}
+		}
+	}
+
+	/**
+	 * This function checks a string agains an array or string
+	 * @param string $string The input string to check for
+	 * @param string|array $input  The string or array to check against
+	 * @since 1.3
+	 * @return boolean Tru is returned if the string is in the array or in string
+	 * @access private
+	 */
+	private function _Check_String ( $string = null, $input = null ) {
+		if (!is_null($string) && !is_null($input)){
+			if (is_string($input)) {
+				return (strpos($input, $string) !== false);
+			} else if (is_array($input)) {
+				return self::_Array_Strpos($string, $input);
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+
+	}
+
+	/**
+	 * This function searches throug an array containing the haystacks and perform a strpos function
+	 * @since 1.3
+	 * @access private
+	 * @param string $needle   The string to search for
+	 * @param array $haystack The array to look in
+	 */
+	private function _Array_Strpos ( $needle, $haystack) {
+		if (is_array($haystack)) {
+			$result = false;
+			foreach ($haystack as $key => $value) {
+				if (strpos($needle, $value) !== false) {
+					$result = true;
+				}
+			}
+			return $result;
+		} else {
+			return falsE;
+		}
 	}
 
 	/**
@@ -1066,6 +1482,24 @@ class Std_Library{
 	}
 
 	/**
+	 * This function returns the fields of the class
+	 * @since 1.21
+	 * @access private
+	 * @todo Add the fields of the child classes too like,
+	 * array (
+	 *    "property" => array(
+	 *        "id",
+	 *        "name"
+	 *    ),
+	 *    "name"
+	 * );
+	 * @return array
+	 */
+	private function _Get_Fields () {
+		return array_keys(self::Export(true,false,false));
+	}
+
+	/**
 	 * This function processes input and calls the correct input function for it
 	 * @since 1.21
 	 * @access private
@@ -1193,24 +1627,6 @@ class Std_Library{
 				}
 			}
 		}
-	}
-
-	/**
-	 * This function returns the fields of the class
-	 * @since 1.21
-	 * @access private
-	 * @todo Add the fields of the child classes too like,
-	 * array (
-	 *    "property" => array(
-	 *        "id",
-	 *        "name"
-	 *    ),
-	 *    "name"
-	 * );
-	 * @return array
-	 */
-	private function _Get_Fields () {
-		return array_keys(self::Export(true,false,false));
 	}
 
 	/**
@@ -2117,85 +2533,6 @@ class Std_Library{
 	}
 
 	/**
-	 * This function uses the $_INTERNAL_SECURE_EXPORT_IGNORE,
-	 * to remove the properties that's not gonna be available for the public
-	 * @since 1.0
-	 * @access private
-	 * @return array The exported data as an array
-	 */
-	private function _Secure_Export(){
-		$Array = array();
-		foreach (get_class_vars(get_class($this)) as $Name => $Value) {
-			if (!self::Ignore($Name,$this->_INTERNAL_SECURE_EXPORT_IGNORE)) {
-				$Data = $this->{$Name};
-				if(self::_Is_Property_Linked_Row($Name)){
-					$Data = self::_Property_Linked_Row_Export($Data,$Name);
-				}
-				if(self::_Contains_Object($Data)){
-					if(is_array($Data)){
-						$TempArray = array();
-						foreach ($Data as $Object) {
-							if(method_exists($Object, "Export")){
-								$TempArray[] = $Object->Export(false,true);
-							}
-						}
-						if(count($TempArray) > 0){
-							$Array[$Name] = $TempArray;
-						} else {
-							$Array[$Name] = $Data;
-						}
-					} else {
-						if(method_exists($Data, "Export")){
-							$Array[$Name] = $Data->Export(false,true);
-						}
-					}
-				} else {
-					$Array[$Name] = $Data;
-				}
-			}
-		}	
-		return $Array;		
-	}
-
-	/**
-	 * This function does a normal export without any not normal ignores
-	 * @since 1.0
-	 * @param boolean $Secure If this flag is set to true then the sub objects will have the secure export added to the export function
-	 * @access private
-	 * @return array The exported data as an array
-	 */
-	private function _Normal_Export($Secure = false){
-		$Array = array();
-		foreach (get_class_vars(get_class($this)) as $Name => $Value) {
-			if (!self::Ignore($Name)) {
-				$Data = $this->{$Name};
-				if(self::_Contains_Object($Data)){
-					if(is_array($Data)){
-						$TempArray = array();
-						foreach ($Data as $Object) {
-							if(method_exists($Object, "Export")){
-								$TempArray[] = $Object->Export(false,$Secure);
-							}
-						}
-						if(count($TempArray) > 0){
-							$Array[$Name] = $TempArray;
-						} else {
-							$Array[$Name] = $Data;
-						}
-					} else {
-						if(method_exists($Data, "Export")){
-							$Array[$Name] = $Data->Export(false,$Secure);
-						}
-					}
-				} else {
-					$Array[$Name] = $Data;
-				}
-			}
-		}	
-		return $Array;
-	}
-
-	/**
 	 * This function removes local data, set the id flag to true to remove the id too.
 	 * @param boolean $Id If this is set to true then the id is cleared too
 	 * @since 1.0
@@ -2215,7 +2552,7 @@ class Std_Library{
 	}
 
 	/**
-	 * This function takes an array and ads the data to the variable with the right key {Name},
+	 * This function takes an array and adds the data to the variable with the right key {Name},
 	 * with the corrosponding data {Value}
 	 * @param array $Array The data in Name => Value format to set
 	 * @since 1.0
