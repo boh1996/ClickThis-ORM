@@ -325,6 +325,7 @@ class Std_Library{
 	 * @example
 	 * "property" => array("formating_function", "formating option")
 	 * "property" => array("date", "Y-d-m")
+	 * "property" => boolean // Because the boolean hasn't got any options
 	 */
 	public static $_INTERNAL_EXPORT_FORMATING = NULL;
 
@@ -868,6 +869,24 @@ class Std_Library{
 		return self::Load($Id,true,array("id"));
 	}
 
+	/**
+	 * This function returns the fields of the class
+	 * @since 1.21
+	 * @access private
+	 * @todo Add the fields of the child classes too like,
+	 * array (
+	 *    "property" => array(
+	 *        "id",
+	 *        "name"
+	 *    ),
+	 *    "name"
+	 * );
+	 * @return array
+	 */
+	private function _Get_Fields () {
+		return array_keys(self::Database(null,false));
+	}
+
 	public function Export ( $fields = NULL ,$ignore_empty = true, $ignore = null ) {
 		/*
 			Idear could be to remve the secure export,
@@ -913,9 +932,73 @@ class Std_Library{
 
 		$exported =  self::_Export($this,$ignored_properties,$ignored_keywords,$ignore_empty,$fields);
 
+		$exported = self::_Export_Objects_From_Data($exported);
+
 		$exported = self::_Export_Formating($exported);
 
 		return $exported;
+	}
+
+	public function Database ($fields = null,$ignore_empty = true) {
+		/*
+			Ignore List:
+				Property Link - Done
+				Linked Properties - Done
+				Database Ignore - Done
+				Internal properties - Done
+				Internal keywords - Done
+		*/			
+		/*
+			Features:
+				Implode all arrays
+				Remove property linked rows - Done
+		*/
+		$ignore_list = array(
+			"_INTERNAL_PROPERTIES",
+			"_INTERNAL_DATABASE_EXPORT_INGNORE",
+		);
+
+		$linked_properties = self::_List_Of_Linked_And_Property_Linked_Properties();
+
+		$ignored_properties = self::_Merge_Class_Properties_And_Data($ignore_list,$linked_properties);
+
+		$ignore_keywords_list = array(
+			"_INTERNAL_PROPERTY_KEYWORD_IGNORE"
+		);
+
+		$ignored_keywords = self::_Merge_Class_Properties_And_Data($ignore_keywords_list,true);
+
+		$exported =  self::_Export($this,$ignored_properties,$ignored_keywords,$ignore_empty,$fields);
+			
+		/*foreach ($exported as $property => $value) {
+			
+		}*/
+
+
+
+		return $exported;
+	}
+
+	/**
+	 * This function gets a list of all the properties that are linked or property linked
+	 * @since 1.3
+	 * @access private
+	 */
+	private function _List_Of_Linked_And_Property_Linked_Properties () {
+		$result = null;
+		if (property_exists($this, "_INTERNAL_PROPERTY_LINK") && !is_null($this->_INTERNAL_PROPERTY_LINK) && is_array($this->_INTERNAL_PROPERTY_LINK)) {
+			foreach ($this->_INTERNAL_PROPERTY_LINK as $property => $other) {
+				$result[] = $property;
+			}
+		}
+
+		if (property_exists($this, "_INTERNAL_LINK_PROPERTIES") && !is_null($this->_INTERNAL_LINK_PROPERTIES) && is_array($this->_INTERNAL_LINK_PROPERTIES)) {
+			foreach ($this->_INTERNAL_LINK_PROPERTIES as $property => $other) {
+				$result[] = $property;
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -931,11 +1014,20 @@ class Std_Library{
 					if (is_array($value)) {	
 						$array = array();
 						foreach ($value as $key => $content) {
-							$array[$key] = call_user_func_array($this->_INTERNAL_EXPORT_FORMATING[$property][0], array($this->_INTERNAL_EXPORT_FORMATING[$property][1],$content));
+							if ((is_array($this->_INTERNAL_EXPORT_FORMATING[$property]) && $this->_INTERNAL_EXPORT_FORMATING[$property][0] == "boolean") || $this->_INTERNAL_EXPORT_FORMATING[$property] == "boolean") {
+								$array[$key] = (boolean)$content;
+							} else {
+								$array[$key] = call_user_func_array($this->_INTERNAL_EXPORT_FORMATING[$property][0], array($this->_INTERNAL_EXPORT_FORMATING[$property][1],$content));
+							}
+							
 						}
 						$data[$property] = $array;
 					} else {
-						$data[$property] = call_user_func_array($this->_INTERNAL_EXPORT_FORMATING[$property][0], array($this->_INTERNAL_EXPORT_FORMATING[$property][1],$value));
+						if ((is_array($this->_INTERNAL_EXPORT_FORMATING[$property]) && $this->_INTERNAL_EXPORT_FORMATING[$property][0] == "boolean") || $this->_INTERNAL_EXPORT_FORMATING[$property] == "boolean") {
+							$data[$property] = (boolean)$value;
+						} else {
+							$data[$property] = call_user_func_array($this->_INTERNAL_EXPORT_FORMATING[$property][0], array($this->_INTERNAL_EXPORT_FORMATING[$property][1],$value));
+						}
 					}
 				}
 			}
@@ -1043,33 +1135,13 @@ class Std_Library{
 		foreach ($properties as $index => $property) {
 			if (property_exists($this, $property) && !is_null($this->{$property}) && is_array($this->{$property})){
 				$return = array_merge($return,$this->{$property});
+				$return = array_merge($return,$this->{$property});
 			}
 		}
 
 		$return = array_unique($return);
 
 		return $return;
-	}
-
-	public function Database () {
-		/*
-			Ignore List:
-				Property Link
-				Linked Properties
-				Database Ignore
-				Internal properties
-				Internal keywords
-		*/			
-		/*
-			Features:
-				Implode all arrays
-				Remove property linked rows
-		*/
-		$exported = null;
-			
-		foreach ($exported as $property => $value) {
-			
-		}
 	}
 
 	/**
@@ -1082,18 +1154,19 @@ class Std_Library{
 	 */
 	private function _Export_Objects_From_Data ( $input,  $function = "Export" ,$params = array()) {
 		if (is_array($input)) {
-			$array = arrat();
+			$array = array();
 			foreach ($input as $key => $object) {
-				if ( is_object($input) ) {
-					if ( method_exists($input, $function) ) {
-						$array[] = call_user_func_array(array($input,$function), $params);
+				if ( is_object($object) ) {
+					if ( method_exists($object, $function) ) {
+						$array[$key] = call_user_func_array(array($object,$function), $params);
 					} else {
-						$array[] = get_class_vars(get_class($input));
+						$array[$key] = get_class_vars(get_class($object));
 					}
 				} else {
-					$array[] = $object;
+					$array[$key] = $object;
 				}
 			}
+			return $array;
 		} else if ( is_object($input) ) {
 			if ( method_exists($input, $function) ) {
 				return call_user_func_array(array($input,$function), $params);
@@ -1112,14 +1185,18 @@ class Std_Library{
 	 * @param array $class_data The data to parse
 	 * @param array $fields     An optional field selector
 	 */
-	private function _Export_Fill_With_Data ( $class_data, $fields ) {
-		foreach ($class_data as $property => $value) {
-			$class_data[$property] = $this->{$property};
-			if (!is_null($fields) && is_array($fields) && !in_array($property, $fields)) {
-				unset($class_data[$property]);
+	private function _Export_Fill_With_Data ( $class_data = null, $fields = null ) {
+		if (is_array($class_data)) {
+			foreach ($class_data as $property => $value) {
+				$class_data[$property] = $this->{$property};
+				if (!is_null($fields) && is_array($fields) && !in_array($property, $fields)) {
+					unset($class_data[$property]);
+				}
 			}
+			return $class_data;
+		} else {
+			return array();
 		}
-		return $class_data;
 	}
 
 	/**
@@ -1130,12 +1207,14 @@ class Std_Library{
 	 * @param boolean $ignore_empty A flag to set if the empty data is ignored or not
 	 */
 	private function _Remove_Empty_Export ( $data, $ignore_empty = true) {
-		foreach ($data as $property => $value) {
-			if (is_null($value) && $ignore_empty === true) {
-				unset($data[$property]);
+		if (is_array($data)) {
+			foreach ($data as $property => $value) {
+				if (is_null($value) && $ignore_empty === true) {
+					unset($data[$property]);
+				}
 			}
+			return $data;
 		}
-		return $data;
 	}
 
 	/**
@@ -1479,24 +1558,6 @@ class Std_Library{
 		self::_Force_Array();
 		self::_Convert_To_Boolean();
 		return TRUE;
-	}
-
-	/**
-	 * This function returns the fields of the class
-	 * @since 1.21
-	 * @access private
-	 * @todo Add the fields of the child classes too like,
-	 * array (
-	 *    "property" => array(
-	 *        "id",
-	 *        "name"
-	 *    ),
-	 *    "name"
-	 * );
-	 * @return array
-	 */
-	private function _Get_Fields () {
-		return array_keys(self::Export(true,false,false));
 	}
 
 	/**
