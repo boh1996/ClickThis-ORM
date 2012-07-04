@@ -432,9 +432,9 @@ class Std_Library{
 	 */
 	public function __toString () {
 		if ( property_exists($this, "id") ) {
-			return $this->id;
+			return (string)$this->id;
 		} else if ( property_exists($this, "Id") ) {
-			$this->Id;
+			return (string)$this->Id;
 		} else {
 			return null;
 		}
@@ -846,8 +846,11 @@ class Std_Library{
 		}
 
 		if (property_exists($this, "_INTERNAL_DATABASE_EXPORT_INGNORE") && isset($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && is_array($this->_INTERNAL_DATABASE_EXPORT_INGNORE) && $FillFields == true) {
-			$Fields = array_merge($this->_INTERNAL_DATABASE_EXPORT_INGNORE,$Fields);
-			print_r(self::Export(true,false,false));
+			$Linked_Properties = self::_List_Of_Linked_And_Property_Linked_Properties();
+			if (!is_array($Linked_Properties)) {
+				$Linked_Properties = array();
+			}
+			$Fields = array_merge($this->_INTERNAL_DATABASE_EXPORT_INGNORE,$Fields,$Linked_Properties);
 			$Fields = array_unique($Fields);
 		}
 
@@ -887,35 +890,41 @@ class Std_Library{
 		return array_keys(self::Database(null,false));
 	}
 
+	/**
+	 * This function is the public export function, it can be used to export
+	 * the class data to an API or like.
+	 * @param array  $fields       An array of the fields to export
+	 * @since 1.3
+	 * @access public
+	 * @param boolean $ignore_empty If the empty fields should be ignored
+	 * @param array  $ignore       An aray of extra fields to ignore
+	 * @todo 
+	 * Idear could be to remove the secure export,
+	 *		and instead add access scopes, and all properties that is not accessible with that scope is ignored,
+	 *		and the same system should be used in Import.
+	 *		The should be a read scope and a write scope property
+	 *		like : _INTERNAL_READ_SCOPES and _INTERNAL_WRITE_SCOPES
+	 *		
+	 *	Ignore List:
+	 *			Internal properties - Done
+	 *			Internal keywords - Done
+	 *			Export Ignore - Done
+	 *			Secure ignore - Done	
+	 *		
+	 *	Feature list:
+	 *			Export formating - Done
+	 *			Export sorting - Done
+	 *			Property sort - Done
+	 *			Field selector - Done	
+	 *		
+	 * Todo : 
+	 *			Export objects - Done
+	 *			Scopes
+	 *			Export Data types in export formating
+	 *			Export or remove property linked data - Done
+	 *			Random value
+	 */
 	public function Export ( $fields = NULL ,$ignore_empty = true, $ignore = null ) {
-		/*
-			Idear could be to remve the secure export,
-			and instead add access scopes, and all properties that is not accessible with that scope is ignored,
-			and the same system should be used in Import.
-			The should be a read scope and a write scope property
-			like : _INTERNAL_READ_SCOPES and _INTERNAL_WRITE_SCOPES
-		*/
-		/*
-			Ignore List:
-				Internal properties - Done
-				Internal keywords - Done
-				Export Ignore - Done
-				Secure ignore - Done
-		*/		
-		/*
-			Feature list:
-				Export formating - Done
-				Export sorting - Done
-				Property sort - Done
-				Field selector - Done
-		*/	
-		/*
-			Todo : 
-				Export object
-				Scopes
-				Export Data types in export formating
-				Export or remove linked and property linked data
-		*/
 		$ignore_list = array(
 			"_INTERNAL_PROPERTIES",
 			"_INTERNAL_EXPORT_INGNORE",
@@ -934,25 +943,54 @@ class Std_Library{
 
 		$exported = self::_Export_Objects_From_Data($exported);
 
+		$exported = self::_Export_Property_Linked_Data ($exported);
+
 		$exported = self::_Export_Formating($exported);
 
 		return $exported;
 	}
 
+	/**
+	 * This function exports the property linked data in the array
+	 * @since 1.3
+	 * @access private
+	 * @param array $data The data to look trough
+	 * @return array The exported data or the input data
+	 */
+	private function _Export_Property_Linked_Data ( $data ) {
+		if (property_exists($this, "_INTERNAL_PROPERTY_LINK") && !is_null($this->_INTERNAL_PROPERTY_LINK) && is_array($this->_INTERNAL_PROPERTY_LINK)) {
+			foreach ($this->_INTERNAL_PROPERTY_LINK as $property => $settings) {
+				if (array_key_exists($property, $data)) {
+					$data[$property] = self::_Property_Linked_Row_Export($data[$property],$property);
+				}
+			}
+			return $data;
+		}
+		return $data;
+	}
+
+	/**
+	 * This function exports the class data to a format the Std_Model understands
+	 * @since 1.3
+	 * @access public
+	 * @param array  $fields       An array of the fields to select, if the variable is null all is selected
+	 * @param boolean $ignore_empty If the empty fields should be ignored
+	 * @return array
+	 * @todo 
+	 * 
+	 * Ignore List:
+	 *			Property Link - Done
+	 * 			Linked Properties - Done
+	 *			Database Ignore - Done
+	 *			Internal properties - Done
+     *			Internal keywords - Done
+	 * 
+	 * Features:
+	 *			Implode all arrays - Done
+	 *			Remove property linked rows - Done
+	 *			Random Value
+	 */
 	public function Database ($fields = null,$ignore_empty = true) {
-		/*
-			Ignore List:
-				Property Link - Done
-				Linked Properties - Done
-				Database Ignore - Done
-				Internal properties - Done
-				Internal keywords - Done
-		*/			
-		/*
-			Features:
-				Implode all arrays
-				Remove property linked rows - Done
-		*/
 		$ignore_list = array(
 			"_INTERNAL_PROPERTIES",
 			"_INTERNAL_DATABASE_EXPORT_INGNORE",
@@ -970,11 +1008,11 @@ class Std_Library{
 
 		$exported =  self::_Export($this,$ignored_properties,$ignored_keywords,$ignore_empty,$fields);
 			
-		/*foreach ($exported as $property => $value) {
-			
-		}*/
+		$exported = self::_Export_Objects_From_Data($exported, "Database", array() , true);
 
+		$exported = self::_Export_Property_Linked_Data ($exported);
 
+		$exported = self::_Implode_Array($exported);
 
 		return $exported;
 	}
@@ -1151,27 +1189,48 @@ class Std_Library{
 	 * @param array|object $input    The object or the array containing the objects
 	 * @param string $function The object function to use
 	 * @param array  $params   The object function params to use
+	 * @param boolean $idFirst If this flag is true then the object will be exported with the id if it exists
 	 */
-	private function _Export_Objects_From_Data ( $input,  $function = "Export" ,$params = array()) {
+	private function _Export_Objects_From_Data ( $input,  $function = "Export" ,$params = array(), $idFirst = false) {
 		if (is_array($input)) {
 			$array = array();
 			foreach ($input as $key => $object) {
-				if ( is_object($object) ) {
-					if ( method_exists($object, $function) ) {
-						$array[$key] = call_user_func_array(array($object,$function), $params);
+				if ( self::_Contains_Object($object) ) {
+					if ($idFirst === true and property_exists($object, "id")) {
+						 $array[$key] = $object->id;
 					} else {
-						$array[$key] = get_class_vars(get_class($object));
+						if (is_array($object)) {
+							$array[$key] = self::_Export_Objects_From_Data( $object, $function, $params, $idFirst);
+						} else {
+							if ( method_exists($object, $function) ) {
+								$array[$key] = call_user_func_array(array($object,$function), $params);
+							} else {
+								if (is_object($object)) {
+									return get_class_vars(get_class($object));
+								} else {
+									return $object;
+								}
+							}
+						}
 					}
 				} else {
 					$array[$key] = $object;
 				}
 			}
 			return $array;
-		} else if ( is_object($input) ) {
-			if ( method_exists($input, $function) ) {
-				return call_user_func_array(array($input,$function), $params);
+		} else if ( self::_Contains_Object($input) ) {
+			if ($idFirst === true and property_exists($object, "id")) {
+				return $object->id;
 			} else {
-				return get_class_vars(get_class($input));
+				if ( method_exists($input, $function) ) {
+					return call_user_func_array(array($input,$function), $params);
+				} else {
+					if (is_object($input)) {
+						return get_class_vars(get_class($input));
+					} else {
+						return $input;
+					}
+				}
 			}
 		} else {
 			return $input;
@@ -1228,7 +1287,7 @@ class Std_Library{
 	 */
 	private function _Implode ( $array, $delemiter = null ) {
 		if (is_null($delemiter)) {
-			$delemiter = (!property_exists($this, "_INTERNAL_EXPORT_DELEMITER") && !is_null($this->_INTERNAL_EXPORT_DELEMITER))? $this->_INTERNAL_EXPORT_DELEMITER : ";";
+			$delemiter = (property_exists($this, "_INTERNAL_EXPORT_DELEMITER") && !is_null($this->_INTERNAL_EXPORT_DELEMITER))? $this->_INTERNAL_EXPORT_DELEMITER : ";";
 		}
 		$string = $delemiter;
 		$string .= implode($delemiter,$array);
@@ -1380,7 +1439,7 @@ class Std_Library{
 	 * @return array
 	 */
 	public function Database_Rows(){
-		$Variables = self::Export(false,true);
+		$Variables = self::Export(null,false);
 		$Return = array();
 		$Convert = $this->_INTERNAL_DATABASE_MODEL->Get_Names($this);
 		foreach ($Variables as $Key => $Value) {
@@ -2278,7 +2337,7 @@ class Std_Library{
 	private function _Not_Allowed_Dublicate_Rows(){
 		if(property_exists($this, "_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS") && isset($this->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS) && !is_null($this->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS) && is_array($this->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS)){
 			$Query = array();
-			$Export = self::Export(true);
+			$Export = self::Database();
 			foreach ($this->_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS as $Key) {
 				if(isset($Export[$Key]) && !is_null($Export[$Key])){
 					$Query[$Key] = $Export[$Key];
@@ -2435,11 +2494,12 @@ class Std_Library{
 	/**
 	 * This function converts a object to an array if there's more objects in the input or just a string if there's only one
 	 * @param object||array $Data The object to convert to a string or array
+	 * @param string $function The function to call on the object
 	 * @return array||string This output will either be the id of the object or an array with the id's
 	 * @access private
 	 * @since 1.1
 	 */
-	private function _Convert_From_Object($Data = NULL){
+	private function _Convert_From_Object($Data = NULL , $function = "Export"){
 		$Return = NULL;
 		if(!is_null($Data)){
 			if(is_array($Data) && count($Data) > 0){
@@ -2448,8 +2508,8 @@ class Std_Library{
 					if(!is_null($Object)){
 						if(property_exists($Object, "id")){
 							$Temp[] = $Object->id;
-						} elseif(method_exists($Object, "Export")){
-							$Temp[] = $Object->Export(true);
+						} elseif(method_exists($Object, $function)){
+							$Temp[] = $Object->$function();
 						}
 					}
 				}
@@ -2459,8 +2519,8 @@ class Std_Library{
 			} else {
 				if(property_exists($Data, "id")){
 					$Return = $Data->id;
-				} else if (method_exists($Data, "Export")) {
-					$Return = $Data->Export(true);
+				} else if (method_exists($Data, $function)) {
+					$Return = $Data->$function();
 				}
 			}
 			if(!is_null($Return)){

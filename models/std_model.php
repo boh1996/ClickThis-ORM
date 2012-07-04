@@ -299,8 +299,8 @@ class Std_Model extends CI_Model{
 	 * @return integer The new database id
 	 */
 	public function Create(&$Class){
-		if(method_exists($Class, "Export") && property_exists(get_class($Class), "Database_Table")){
-			$data = $Class->Export(true);
+		if(method_exists($Class, "Database") && property_exists(get_class($Class), "Database_Table")){
+			$data = $Class->Database();
 			$this->CI->db->insert($Class->Database_Table, $data); 
 			return $this->CI->db->insert_id();
 		}
@@ -322,7 +322,7 @@ class Std_Model extends CI_Model{
 					$Class->Data_Updated();
 				}
 				
-				$Data = $Class->Export(true);
+				$Data = $Class->Database();
 				if(property_exists($Class, "Database_Table") && count($Data) > 0){
 					$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
 					return true; //Maybe a check for mysql errors
@@ -347,7 +347,7 @@ class Std_Model extends CI_Model{
 						$Class->Data_Created();
 					}
 					
-					$Data = $Class->Export(true);
+					$Data = $Class->Database();
 					if(!is_null($Data) && !is_null($Class) && count($Data) > 0){
 						$this->db->insert($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
 						if(property_exists($Class, "id")){
@@ -375,7 +375,7 @@ class Std_Model extends CI_Model{
 	 */
 	private function _Get_Dublicate_Id(&$Class = NULL){
 		if(is_object($Class)){
-			$Data = $Class->Export(true);
+			$Data = $Class->Database();
 			$Data = self::_Convert_Properties_To_Database_Row($Data);
 			if(is_null($Class->id)){
 				$Query = $this->db->limit(1)->get_where($Class->$Database_Table,$Data);
@@ -419,7 +419,7 @@ class Std_Model extends CI_Model{
 	 */
 	private function _Has_Duplicate(&$Class = NULL){
 		if(!is_null($Class)){
-			$Data = $Class->Export(true);
+			$Data = $Class->Database();
 			$Data = self::_Convert_Properties_To_Database_Row($Data);
 			if(is_null($Class->id)){
 				$Query = $this->db->limit(1)->get_where($Class->$Database_Table,$Data);
