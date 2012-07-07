@@ -594,6 +594,16 @@ class Std_Library{
 	}
 
 	/**
+	 * This function uses the database model to convert the input data to a database query
+	 * @since 1.3
+	 * @access public
+	 * @param array $data The data to convert
+	 */
+	public function Convert ( $data ) {
+		return $this->_INTERNAL_DATABASE_MODEL->Convert($data, $this);
+	}
+
+	/**
 	 * This function adds data, to this class either from a class or from an array,
 	 * and if the Database flag is set to true the data will be saved to the database.
 	 * @param object  &$Class   This parameter should contain a class that has the data to add deffined,

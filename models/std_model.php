@@ -5,7 +5,7 @@
  * @license http://illution.dk/copyright © Illution 2012
  * @subpackage Std_Model
  * @category Models
- * @version 1.21
+ * @version 1.3
  * @author Illution <support@illution.dk>
  */ 
 class Std_Model extends CI_Model{
@@ -100,6 +100,17 @@ class Std_Model extends CI_Model{
 		} else {
 			return $Data;
 		}
+	}
+
+	/**
+	 * This function is a function that compromises the _Convert_Properties_To_Database_Row function
+	 * @param array $data   The data to convert
+	 * @param object &$class The class to use to convert
+	 * @since 1.3
+	 * @access public
+	 */
+	public function Convert ( $data, &$class ) {
+		return self::_Convert_Properties_To_Database_Row($data, $class);
 	}
 
 	/**
