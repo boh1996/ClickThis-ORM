@@ -263,6 +263,15 @@ class Std_Library{
 	public static $_INTERNAL_LAST_UPDATED_USER_PROPERTY = NULL;
 
 	/**
+	 * This property can either contain an array of properties to ignore
+	 * or the keyword "DATABASE" that uses the DATABASE_EXPORT_IGNORE list as ignoring list
+	 * @var array|string
+	 * @since 1.3
+	 * @access public
+	 */
+	public static $_INTERNAL_LINK_SAVE_IGNORE = NULL;
+
+	/**
 	 * A property to store the current user
 	 * @since 1.21
 	 * @access public
@@ -1513,22 +1522,7 @@ class Std_Library{
 		if(!is_null($Table) && !is_null($Link) && is_array($Link) && !is_null($Property)){
 
 			//Check if the properties exists else remove them from the list
-			foreach($Link as $Search => $Key){
-				if($Search == "" || $Key == ""){
-					unset($Link[$Search]);
-				} else {
-					if(property_exists($this, $Key)){
-						if(is_null($this->{$Key})){
-							unset($Link[$Search]);
-						}
-						else if($this->{$Key} == ""){
-							unset($Link[$Search]);
-						} else {
-							$Link[$Search] = $this->{$Key};
-						}
-					}
-				}
-			}
+			$Link = self::_Create_Link_Query($Link);
 
 			//If there is properties left, then start linking
 			if(count($Link) > 0){
@@ -1549,6 +1543,150 @@ class Std_Library{
 			}
 		}
 		return FALSE;
+	}
+
+		/**
+	 * This function loops through all the properties which is linked,
+	 * and ensures that all the containing objects, have the right values in the linked fields.
+	 * And then is the child objects saved
+	 * @access private
+	 * @since 1.0
+	 */
+	private function _Save_Linked_Properties(){
+		if(property_exists($this, "_INTERNAL_LINK_PROPERTIES") && isset($this->_INTERNAL_LINK_PROPERTIES) && !is_null($this->_INTERNAL_LINK_PROPERTIES) && is_array($this->_INTERNAL_LINK_PROPERTIES)){
+				
+			$Properties = $this->_INTERNAL_LINK_PROPERTIES;
+			if (!isset($this->_INTERNAL_LINK_SAVE_IGNORE)) {
+				if (is_array($this->_INTERNAL_LINK_SAVE_IGNORE)) {
+					$Properties = self::_Check_Property_Names($Properties,$this->_INTERNAL_LINK_PROPERTIES);
+				} else if ($this->_INTERNAL_LINK_SAVE_IGNORE == "DATABASE") {
+					$Properties = self::_Check_Property_Names($Properties,$this->_INTERNAL_DATABASE_EXPORT_INGNORE);
+				}
+			}
+
+			foreach ($Properties as $Property => $LinkData) {
+				$Link_Query = $LinkData[1];
+				$RootData 	= self::_Create_Link_Query($Link_Query);
+				$Table 		= $LinkData[0];
+
+				if(property_exists($this, $Property) && !is_null($this->{$Property})){
+					if(is_array($this->{$Property})){
+						foreach ($this->{$Property} as $Data) {
+							if (is_object($Data)) {
+								$Object =& $Data;
+								self::_Set_Save_Link_Data($Link_Query,$Object);
+								if(self::_Has_Save_Link($Property)){
+									$Save_Link_Data = self::_Get_Save_Link_Data($Property);
+									if(!is_null($Save_Link_Data)){
+										self::_Set_Save_Link_Data($Save_Link_Data,$Object);
+									}
+								}
+								if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+									$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+								}
+								if(method_exists($Object, "Save")){
+									$Object->Save();
+								}
+								$Object->Save();
+
+								if (isset($LinkData[2]) && !empty($LinkData[2]) && property_exists($Object, "id") && !is_null($Object->id)) {
+									$DataToSave = array_merge(array($LinkData[2] => $Object->id),$RootData);
+									$this->_INTERNAL_DATABASE_MODEL->Save_Linked($Table,$DataToSave,$this);
+								}
+							} else {
+								if (!is_array($Data)) {
+									$DataToSave = array_merge(array($LinkData[2] => $Data),$RootData);
+									$this->_INTERNAL_DATABASE_MODEL->Save_Linked($Table,$DataToSave,$this);
+								}
+							}
+						}
+					} else {
+						if(gettype($this->{$Property}) == "object"){
+							$Object = $this->{$Property};
+							self::_Set_Save_Link_Data($Link_Query,$Object);
+							if(self::_Has_Save_Link($Property)){
+								$Save_Link_Data = self::_Get_Save_Link_Data($Property);
+								if(!is_null($Save_Link_Data)){
+									self::_Set_Save_Link_Data($Save_Link_Data,$Object);
+								}
+							}
+							if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+								$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
+							}	
+							if(method_exists($Object, "Save")){
+								$Object->Save();
+								if (isset($LinkData[2]) && !empty($LinkData[2]) && property_exists($Object, "id") && !is_null($Object->id)) {
+									$DataToSave = array_merge(array($LinkData[2] => $Object->id),$RootData);
+									$this->_INTERNAL_DATABASE_MODEL->Save_Linked($Table,$DataToSave,$this);
+								}
+							}
+						} else {
+							$DataToSave = array_merge(array($LinkData[2] => $this->{$Property}),$RootData);
+							$this->_INTERNAL_DATABASE_MODEL->Save_Linked($Table,$DataToSave,$this);
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+	/**
+	 * This function loops through the settings property _INTERNAL_LINK_PROPERTIES,
+	 * and links the deffined properties with data from other database tables
+	 * @param array $Fields The field selector array
+	 * @see Link
+	 * @access private
+	 * @since 1.0
+	 */
+	private function _Link_Properties(array $Fields = NULL){
+		if(property_exists($this, "_INTERNAL_LINK_PROPERTIES") && isset($this->_INTERNAL_LINK_PROPERTIES) && !is_null($this->_INTERNAL_LINK_PROPERTIES) && is_array($this->_INTERNAL_LINK_PROPERTIES)){
+			foreach ($this->_INTERNAL_LINK_PROPERTIES as $ClassProperty => $LinkData) {
+				if(is_array($LinkData) && (is_null($Fields) || (!is_null($Fields) && is_array($Fields) && in_array($ClassProperty, $Fields)))){
+					$Table = $LinkData[0];
+					$Query = $LinkData[1];
+					if(isset($LinkData[2])){
+						$Select = $LinkData[2];
+					} else {
+						$Select = NULL;
+					}
+					if(method_exists($this, "Link")){
+						self::Link($Table,$Query,$ClassProperty,true,$Select);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * This function creates the Link query
+	 * @since 1.3
+	 * @access private
+	 * @param object $class The class to use the date from to create the query
+	 * @param array $data  The array to create the query of
+	 * @return array
+	 */
+	private function _Create_Link_Query ( $data = null, $class = null) {
+		if (is_null($class)) {
+			$class = $this;
+		}
+		foreach($data as $search => $key){
+			if($search == "" || $key == ""){
+				unset($data[$search]);
+			} else {
+				if(property_exists($class, $key)){
+					if(is_null($class->{$key})){
+						unset($data[$search]);
+					}
+					else if($class->{$key} == ""){
+						unset($data[$key]);
+					} else {
+						$data[$search] = $class->{$key};
+					}
+				}
+			}
+		}
+		return $data;
 	}
 
 	/**
@@ -1851,33 +1989,6 @@ class Std_Library{
 			}
 		}
 		return $Return;
-	}
-
-	/**
-	 * This function loops through the settings property _INTERNAL_LINK_PROPERTIES,
-	 * and links the deffined properties with data from other database tables
-	 * @param array $Fields The field selector array
-	 * @see Link
-	 * @access private
-	 * @since 1.0
-	 */
-	private function _Link_Properties(array $Fields = NULL){
-		if(property_exists($this, "_INTERNAL_LINK_PROPERTIES") && isset($this->_INTERNAL_LINK_PROPERTIES) && !is_null($this->_INTERNAL_LINK_PROPERTIES) && is_array($this->_INTERNAL_LINK_PROPERTIES)){
-			foreach ($this->_INTERNAL_LINK_PROPERTIES as $ClassProperty => $LinkData) {
-				if(is_array($LinkData) && (is_null($Fields) || (!is_null($Fields) && is_array($Fields) && in_array($ClassProperty, $Fields)))){
-					$Table = $LinkData[0];
-					$Query = $LinkData[1];
-					if(isset($LinkData[2])){
-						$Select = $LinkData[2];
-					} else {
-						$Select = NULL;
-					}
-					if(method_exists($this, "Link")){
-						self::Link($Table,$Query,$ClassProperty,true,$Select);
-					}
-				}
-			}
-		}
 	}
 
 	/**
@@ -2248,57 +2359,6 @@ class Std_Library{
 				} else {
 					if(property_exists($Object, $Property)){
 						$Object->{$Property} = $Value;
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * This function loops through all the properties which is linked,
-	 * and ensures that all the containing objects, have the right values in the linked fields.
-	 * And then is the child objects saved
-	 * @access private
-	 * @since 1.0
-	 */
-	private function _Save_Linked_Properties(){
-		if(property_exists($this, "_INTERNAL_LINK_PROPERTIES") && isset($this->_INTERNAL_LINK_PROPERTIES) && !is_null($this->_INTERNAL_LINK_PROPERTIES) && is_array($this->_INTERNAL_LINK_PROPERTIES)){
-			foreach ($this->_INTERNAL_LINK_PROPERTIES as $Property => $LinkData) {
-				$Link_Query = $LinkData[1];
-				if(property_exists($this, $Property) && !is_null($this->{$Property})){
-					if(is_array($this->{$Property})){
-						foreach ($this->{$Property} as $Object) {
-							self::_Set_Save_Link_Data($Link_Query,$Object);
-							if(self::_Has_Save_Link($Property)){
-								$Save_Link_Data = self::_Get_Save_Link_Data($Property);
-								if(!is_null($Save_Link_Data)){
-									self::_Set_Save_Link_Data($Save_Link_Data,$Object);
-								}
-							}
-							if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
-								$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
-							}
-							if(method_exists($Object, "Save")){
-								$Object->Save();
-							}
-						}
-					} else {
-						if(gettype($this->{$Property}) == "object"){
-							$Object = $this->{$Property};
-							self::_Set_Save_Link_Data($Link_Query,$Object);
-							if(self::_Has_Save_Link($Property)){
-								$Save_Link_Data = self::_Get_Save_Link_Data($Property);
-								if(!is_null($Save_Link_Data)){
-									self::_Set_Save_Link_Data($Save_Link_Data,$Object);
-								}
-							}
-							if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
-								$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
-							}	
-							if(method_exists($Object, "Save")){
-								$Object->Save();
-							}
-						}
 					}
 				}
 			}

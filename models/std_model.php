@@ -43,6 +43,39 @@ class Std_Model extends CI_Model{
     }
 
     /**
+     * This function saves the linked data
+     * @param string $table The table to save in
+     * @param array $data  The data to save
+     * @param object &$class The class that owns the data
+     * @return boolean
+     * @since 1.3
+     * @access public
+     */
+    public function Save_Linked ( $table = null, $data = null, &$class) {
+    	if (!is_null($table) && !is_null($data)) {
+    		$data = self::_Convert_Properties_To_Database_Row($data,$class);
+    		if (!self::_Array_Data_Exists($table,$data)) {
+    			$this->db->insert($table,$data);
+    		}
+    		return TRUE;
+    	} else {
+    		return FALSE;
+    	}
+    }
+
+    /**
+     * This function checks 
+     * @param string $table The table to search in
+     * @param array $data  The array to to search for
+     * @since 1.3
+     * @access private
+     * @return boolean
+     */
+    private function _Array_Data_Exists ($table, $data) {
+    	return ($this->db->where($data)->from($table)->count_all_results() > 0);
+    }
+
+    /**
      * This function gets or creates a convertion table if any data is existing
      * @param object $Object The object to create from
      * @param string $Type   The tpye "Database" or "Row"
