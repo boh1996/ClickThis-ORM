@@ -943,7 +943,7 @@ class Std_Library{
 	 *			Export or remove property linked data - Done
 	 *			Random value
 	 */
-	public function Export ( $fields = NULL ,$ignore_empty = true, $ignore = null ) {
+	public function Export ( $fields = NULL ,$ignore_empty = false, $ignore = null ) {
 		$ignore_list = array(
 			"_INTERNAL_PROPERTIES",
 			"_INTERNAL_EXPORT_INGNORE",
@@ -1072,7 +1072,11 @@ class Std_Library{
 						$array = array();
 						foreach ($value as $key => $content) {
 							if ((is_array($this->_INTERNAL_EXPORT_FORMATING[$property]) && $this->_INTERNAL_EXPORT_FORMATING[$property][0] == "boolean") || $this->_INTERNAL_EXPORT_FORMATING[$property] == "boolean") {
-								$array[$key] = (boolean)$content;
+								if (is_string($array[$key])) {
+									$array[$key] = ($array[$key] == "true")? true : false;
+								} else {
+									$array[$key] = (boolean)$content;
+								}
 							} else {
 								$array[$key] = call_user_func_array($this->_INTERNAL_EXPORT_FORMATING[$property][0], array($this->_INTERNAL_EXPORT_FORMATING[$property][1],$content));
 							}
@@ -1081,7 +1085,11 @@ class Std_Library{
 						$data[$property] = $array;
 					} else {
 						if ((is_array($this->_INTERNAL_EXPORT_FORMATING[$property]) && $this->_INTERNAL_EXPORT_FORMATING[$property][0] == "boolean") || $this->_INTERNAL_EXPORT_FORMATING[$property] == "boolean") {
-							$data[$property] = (boolean)$value;
+							if (is_string($data[$property])) {
+								$data[$property] = ($data[$property] == "true")? true : false;
+							} else {
+								$data[$property] = (boolean)$value;
+							}
 						} else {
 							$data[$property] = call_user_func_array($this->_INTERNAL_EXPORT_FORMATING[$property][0], array($this->_INTERNAL_EXPORT_FORMATING[$property][1],$value));
 						}
@@ -1568,6 +1576,10 @@ class Std_Library{
 				$Link_Query = $LinkData[1];
 				$RootData 	= self::_Create_Link_Query($Link_Query);
 				$Table 		= $LinkData[0];
+
+				if (!isset($LinkData[2])) {
+					$LinkData[2] = "id";
+				}
 
 				if(property_exists($this, $Property) && !is_null($this->{$Property})){
 					if(is_array($this->{$Property})){
