@@ -52,10 +52,15 @@ class Std_Model extends CI_Model{
      * @access public
      */
     public function Save_Linked ( $table = null, $data = null, &$class) {
-    	if (!is_null($table) && !is_null($data)) {
-    		$data = self::_Convert_Properties_To_Database_Row($data,$class);
+    	if (!is_null($table) && !is_null($data) && self::_Table_Exists($table)) {
     		if (!self::_Array_Data_Exists($table,$data)) {
     			$this->db->insert($table,$data);
+
+    		} else if (isset($data["id"]) && !empty($data["id"])) {
+    			$id = $data["id"];
+    			$update = $data;
+    			unset($update["id"]);
+    			$this->db->where(array("id" => $id))->update($table,$update);
     		}
     		return TRUE;
     	} else {
@@ -72,7 +77,11 @@ class Std_Model extends CI_Model{
      * @return boolean
      */
     private function _Array_Data_Exists ($table, $data) {
-    	return ($this->db->where($data)->from($table)->count_all_results() > 0);
+    	if ((!array_key_exists("id", $data)) || (isset($data["id"]) && !self::_Exists($data["id"],$table)) && self::_Table_Exists($table)) {
+    		return ($this->db->where($data)->from($table)->count_all_results() > 0);
+    	} else {
+    		return true;
+    	}
     }
 
     /**
@@ -204,7 +213,7 @@ class Std_Model extends CI_Model{
 	 * @access public
 	 */
 	public function Link($Table = NULL,$Link = NULL,&$Class = NULL,$Select = NULL){
-		if(!is_null($Table) && !is_null($Link) && !is_null($Class) && is_array($Link)){
+		if(!is_null($Table) && !is_null($Link) && !is_null($Class) && is_array($Link) && self::_Table_Exists($Table)){
 			if(is_null($Select)){
 				$Select = "id";
 			}
@@ -233,6 +242,17 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
+	 * This function checks if the requested table exists
+	 * @since 1.3
+	 * @access private
+	 * @param string $table The name of the table
+	 * @return boolean
+	 */
+	private function _Table_Exists ( $table ) {
+		return $this->db->table_exists($table);
+	}	
+
+	/**
 	 * This function checks if a row Exists in the database
 	 * @param integer $Id The database row id for the row to check for
 	 * @param string $Table The database table to look up in
@@ -242,7 +262,7 @@ class Std_Model extends CI_Model{
 	 * else TRUE is returned.
 	 */
 	private function _Exists($Id = NULL,$Table = NULL){
-		if(!is_null($Id) && !is_null($Table) && !is_array($Id)){
+		if(!is_null($Id) && !is_null($Table) && !is_array($Id) && self::_Table_Exists($Table)){
 			$Query = $this->db->where(array("id" => $Id))->get($Table);
 			if(!is_null($Query) && $Query->num_rows() == 0){
 				return false;
@@ -291,7 +311,7 @@ class Std_Model extends CI_Model{
 				$Class->id = $Id;
 			}
 			$Fields = implode(",", self::_Convert_Fields($Fields,$Class));
-			if(!is_null($Class->id) && self::_Exists($Class->id,$Class->Database_Table)){
+			if(!is_null($Class->id) && self::_Table_Exists($Class->Database_Table) && self::_Exists($Class->id,$Class->Database_Table)){
 				$ClassQuery = $this->db->limit(1)->select($Fields)->where(array("id" => $Class->id))->get($Class->Database_Table);
 				$Row = current($ClassQuery->result());
 				foreach ($Row as $Key => $Value) {
@@ -343,7 +363,7 @@ class Std_Model extends CI_Model{
 	 * @return integer The new database id
 	 */
 	public function Create(&$Class){
-		if(method_exists($Class, "Database") && property_exists(get_class($Class), "Database_Table")){
+		if(method_exists($Class, "Database") && property_exists(get_class($Class), "Database_Table") && self::_Table_Exists($Class->Database_Table)){
 			$data = $Class->Database();
 			$this->CI->db->insert($Class->Database_Table, $data); 
 			return $this->CI->db->insert_id();
@@ -358,7 +378,7 @@ class Std_Model extends CI_Model{
 	 * @return boolean If the operation was succes
 	 */
 	public function Save(&$Class = NULL){
-		if( property_exists($Class, "Database_Table")){
+		if( property_exists($Class, "Database_Table") && self::_Table_Exists($Class->Database_Table)){
 			self::_Data_Exists($Class);
 			if((isset($Class->id) || isset($Class->id)) && self::_Exists($Class->id,$Class->Database_Table)){
 
@@ -418,7 +438,7 @@ class Std_Model extends CI_Model{
 	 * @access private
 	 */
 	private function _Get_Dublicate_Id(&$Class = NULL){
-		if(is_object($Class)){
+		if(is_object($Class) && self::_Table_Exists($Class->Database_Table)){
 			$Data = $Class->Database();
 			$Data = self::_Convert_Properties_To_Database_Row($Data);
 			if(is_null($Class->id)){
@@ -462,7 +482,7 @@ class Std_Model extends CI_Model{
 	 * @access private
 	 */
 	private function _Has_Duplicate(&$Class = NULL){
-		if(!is_null($Class)){
+		if(!is_null($Class) && self::_Table_Exists($Class->Database_Table)){
 			$Data = $Class->Database();
 			$Data = self::_Convert_Properties_To_Database_Row($Data);
 			if(is_null($Class->id)){
@@ -513,7 +533,7 @@ class Std_Model extends CI_Model{
 	 * @return boolean If matched data was found
 	 */
 	public function Match_Data(&$Class = NULL,$QueryData = NULL){
-		if(!is_null($QueryData) && !is_null($Class) && is_array($QueryData)){
+		if(!is_null($QueryData) && !is_null($Class) && is_array($QueryData) && self::_Table_Exists($Class->Database_Table)){
 			if(isset($Class->id)){
 				$QueryData["id"] = "!= ".$Class->id;
 			}
@@ -557,7 +577,7 @@ class Std_Model extends CI_Model{
 	 * @return integer The database id of the data
 	 */
 	 private function _Get_Query_Data($Array = NULL,$Table = NULL,&$Class){
-       if(!is_null($Array) && !is_null($Table)){
+       if(!is_null($Array) && !is_null($Table) && self::_Table_Exists($Table)){
             $Like = array();
             $Or_Like = array();
             foreach ($Array as $Key => $Value) {
@@ -600,7 +620,7 @@ class Std_Model extends CI_Model{
 	 * Find("Name" => "Bo","Users");
 	 */
 	public function Find($Query = NULL,$Table = NULL,&$Class = NULL){
-		if(!is_null($Query) && is_array($Query) && !is_null($Table)){
+		if(!is_null($Query) && is_array($Query) && !is_null($Table) && self::_Table_Exists($Table)){
 			$Data = self::_Convert_Properties_To_Database_Row($Query,$Class);
 			if(!is_null($Data)){
 				$Raw = self::_Get_Query_Data($Data,$Table,$Class);

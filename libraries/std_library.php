@@ -173,6 +173,16 @@ class Std_Library{
 	public static $_INTERNAL_SIMPLE_LOAD = NULL;
 
 	/**
+	 * The fields specified in this array will reuse the existing objects,
+	 * when overwriting on import, so only if the amount of new objects is larger,
+	 * then new objects will be created
+	 * @var array
+	 * @since 1.3
+	 * @access public
+	 */
+	public static $_INTERNAL_IMPORT_OVERWRITE_REUSE = NULL;
+
+	/**
 	 * This property is used to deffine a set of rows that is gonna be
 	 * unique for this row of data
 	 * @var array
@@ -210,6 +220,14 @@ class Std_Library{
 	 * $this->_INTERNAL_PROPERTY_LINK = array("Options" => array("Values","OptionId"));
 	 */
 	public static $_INTERNAL_PROPERTY_LINK = NULL;
+
+	/**
+	 * Use this array to set properties that always should be overwritten
+	 * @since 1.3
+	 * @access public
+	 * @var array
+	 */
+	public static $_INTERNAL_IMPORT_OVERWRITE = NULL;
 
 	/**
 	 * This function concerts "1" to true and 0 and NULL to false,
@@ -1702,6 +1720,36 @@ class Std_Library{
 	}
 
 	/**
+	 * This function is used to debug data
+	 * @since 1.3
+	 * @access public
+	 * @param string|integer|booleabn|object|array $data The data to ouput
+	 */
+	public function Debug () {
+		foreach (func_get_args() as $key => $value) {
+			if (is_array($value)) {
+				echo "<pre>";
+				print_r($value);
+				echo "</pre>";
+			} else if (is_object($value)) {
+				echo "<pre>";
+				if (method_exists($value, "Export")) {
+					print_r($value->Export(null,false));
+				} else {
+					print_r($value);
+				}
+				echo "</pre>";
+			} else if (is_bool($value)) {
+				echo "<pre>";
+				var_dump($value);
+				echo "</pre>";
+			} else {
+				echo $value,"<br>";
+			}	
+		}
+	}
+
+	/**
 	 * This function imports data from an array with the same key name as the local property to import too.
 	 * @param array $Array The data to import in Name => Value format
 	 * @param boolean $Override If this flag is set to true, then if the data is an array the clas $s data is overridden
@@ -1717,6 +1765,11 @@ class Std_Library{
 					$Import_Ignore = $this->_INTERNAL_IMPORT_IGNORE;
 				}
 				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure,$Import_Ignore)){
+					if (isset($this->_INTERNAL_IMPORT_OVERWRITE) && is_array($this->_INTERNAL_IMPORT_OVERWRITE) && (in_array($Property, $this->_INTERNAL_IMPORT_OVERWRITE) || array_key_exists($Property, $this->_INTERNAL_IMPORT_OVERWRITE))) {
+						$Overwrite = (array_key_exists($Property, $this->_INTERNAL_IMPORT_OVERWRITE))? $this->_INTERNAL_IMPORT_OVERWRITE[$Property] : true;
+					} else {
+						$Overwrite = $Override;
+					}
 					if(self::_Has_Load_From_Class($Property)){
 						$ClassName = self::_Get_Load_From_Class_Data($Property);
 						$this->_CI->load->library($ClassName);
@@ -1728,15 +1781,13 @@ class Std_Library{
 										if(is_array($SubContent) && self::_Has_Interger_Keys($SubContent)){
 											//Not Sure		
 										} else if(is_array($SubContent)){
-											$Object = new $ClassName();
-											if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
-												$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
-											}											
+											$Object = new $ClassName();										
 											if(method_exists($Object, "Import")){
 												$Object->Import($SubContent);
-												self::_Merge_Array($Property,$Object,$Override);
+												self::_Parse_Object_For_Import($Property,$Object, $this, $Key);
+												$Temp[$Key] = $Object;
 											} else {
-												self::_Merge_Array($Property,$SubContent,$Override);
+												$Temp[$Key] = $SubContent;
 											}
 										} else if(is_integer($SubContent)){
 											$Temp[] = $SubContent;
@@ -1744,20 +1795,18 @@ class Std_Library{
 											$Temp[] = $SubContent;
 										}
 									}
-									self::_Merge_Array($Property,$Temp,$Override);
+									self::_Merge_Array($Property,$Temp,$Overwrite);
 								} else {
-									self::_Merge_Array($Property,$Value,$Override);
+									self::_Merge_Array($Property,$Value,$Overwrite);
 								}
 							} else {
 								$Object = new $ClassName();
-								if (property_exists($this,"_INTERNAL_CURRENT_USER") && isset($this->_INTERNAL_CURRENT_USER) && !is_null($this->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
-									$Object->Set_Current_User($this->_INTERNAL_CURRENT_USER);
-								}
 								if(method_exists($Object, "Import")){
 									$Object->Import($Value);
-									self::_Merge_Array($Property,$Object,$Override);
+									self::_Parse_Object_For_Import($Property,$Object, $this, 0);
+									self::_Merge_Array($Property,$Object,$Overwrite);
 								} else {
-									self::_Merge_Array($Property,$Value,$Override);
+									self::_Merge_Array($Property,$Value,$Overwrite);
 								}
 							}
 						} else if (is_integer($Value)) {
@@ -1766,7 +1815,7 @@ class Std_Library{
 							$this->{$Property} = $Value;
 						}
 					} else {
-						self::_Merge_Array($Property,$Value,$Override);
+						self::_Merge_Array($Property,$Value,$Overwrite);
 					}
 				}
 			}
@@ -1777,6 +1826,40 @@ class Std_Library{
 		self::_Force_Array();
 		self::_Convert_To_Boolean();
 		return TRUE;
+	}
+
+	/**
+	 * This function parse an object for import
+	 * @since 1.3
+	 * @access private
+	 * @param string $property The property where to object is going to be imported into later
+	 * @param object &$object  The object to be parsed
+	 * @param object &$class   The class where the object is going to be imported into
+	 * @param integer $number   An optional key in the import array
+	 */
+	private function _Parse_Object_For_Import ( $property, &$object, &$class, $number) {
+		if (property_exists($class,"_INTERNAL_CURRENT_USER") && isset($class->_INTERNAL_CURRENT_USER) && !is_null($class->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+			$object->Set_Current_User($class->_INTERNAL_CURRENT_USER);
+		}	
+	}
+
+	/**
+	 * This function merges an array with the incoming data or just assigns the incomming data
+	 * @since 1.3
+	 * @access private
+	 * @param string $property The property to import it to
+	 * @param array|string|integer|boolean $data     The data to import
+	 * @param object &$class   The class where the property exists in
+	 */
+	private function _Import_Data ( $property, $data, &$class) {
+		if (property_exists($class, $property)) {
+			if (is_array($class->{$property})) {
+				$data = (array)$data;
+				$class->{$property} = array_merge($class->{$property},$data);
+			} else {
+				$class->{$property} = $data;
+			}
+		}
 	}
 
 	/**
@@ -2037,28 +2120,29 @@ class Std_Library{
 	 * @access private
 	 */
 	private function _Merge_Array ($Property, $Input ,$Override = false) {
-		if(property_exists($this, $Property)){
+		$class = $this;
+		if(property_exists($class, $Property)){
 			if(is_array($Input) && !is_null($Input)){
 				if($Override){
-					$this->{$Property} = $Input;
+					$class->{$Property} = $Input;
 				} else {
-					if(!is_null($this->{$Property}) && is_array($this->{$Property})){
-						$this->{$Property} = array_merge($this->{$Property},$Input);
-					} else if(!is_null($this->{$Property})) {
-						$this->{$Property} = array_merge(array($this->{$Property}),$Input);
+					if(!is_null($class->{$Property}) && is_array($class->{$Property})){
+						$class->{$Property} = array_merge($class->{$Property},$Input);
+					} else if(!is_null($class->{$Property})) {
+						$class->{$Property} = array_merge(array($class->{$Property}),$Input);
 					} else if(!is_null($Input)){
-						$this->{$Property} = $Input;
+						$class->{$Property} = $Input;
 					}
 				}
 			} else if(!is_null($Input)){
-				if(!is_null($this->{$Property}) && !$Override){
-					if(is_array($this->{$Property})){
-						$this->{$Property} = array_merge($this->{$Property},array($Input));
+				if(!is_null($class->{$Property}) && !$Override){
+					if(is_array($class->{$Property})){
+						$class->{$Property} = array_merge($class->{$Property},array($Input));
 					} else {
-						$this->{$Property} = array_merge(array($this->{$Property}),array($Input));
+						$class->{$Property} = array_merge(array($class->{$Property}),array($Input));
 					}
 				} else {
-					$this->{$Property} = $Input;
+					$class->{$Property} = $Input;
 				}
 			}
 		}
