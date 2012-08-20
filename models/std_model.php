@@ -42,20 +42,122 @@ class Std_Model extends CI_Model{
         }
     }
 
+   /**
+    * This function check for duplicates and performs some checks if a duplicate is found
+    * @param object &$class             The classes that is saved
+    * @param array $data               The data that is sent to the database
+    * @param string $table              The table where it's saved
+    * @param array $duplicate_rows     [description]
+    * @param string $duplicate_function [description]
+    */
+  	private function _Linked_Duplicate_Check ( &$class, $data, $table, $duplicate_rows = null, $duplicate_function = "NONE") {
+		if (!is_null($duplicate_rows)) {
+    		$rows = $data;
+    		foreach ($rows as $key => $value) {
+    			if (!in_array($key, $duplicate_rows) && !array_key_exists($key, $duplicate_rows)) {
+    				unset($rows[$key]);
+    			}
+    		}
+		} else {
+			$rows = $data;
+		}
+		$data_exists = self::_Array_Data_Exists($table,$rows);
+		if (!$data_exists) {
+			return false;
+		} else {
+			return (!isset($data["id"]) && $duplicate_function == "NONE");
+		}
+    }
+
+    /**
+     * This function checks if data exist
+     * @param array $data           The data to check for
+     * @param string $table          The table to check in
+     * @param array $duplicate_rows An optional array of constant rows
+     * @since 1.3
+     * @access public
+     * @return boolean
+     */
+    public function Dublicate_Check ($data, $table, $duplicate_rows = null) {
+    	if (!is_null($duplicate_rows)) {
+    		$rows = $data;
+    		foreach ($rows as $key => $value) {
+    			if (!in_array($key, $duplicate_rows) && !array_key_exists($key, $duplicate_rows)) {
+    				unset($rows[$key]);
+    			}
+    		}
+		} else {
+			$rows = $data;
+		}
+		$data_exists = self::_Array_Data_Exists($table,$rows);
+		return $data_exists;
+    }
+
+    /**
+     * This function get the matching data and return an array of the matching id's
+     * @param string $table          The table to search in
+     * @param array $data           The data to search for
+     * @param array $duplicate_rows An optional list of constant/not allowed duplicate rows
+     * @since 1.3
+     * @access public
+     * @return array
+     */
+    public function Get_Matching_Data ( $table, $data, $duplicate_rows = null) {
+    	 if (!is_null($duplicate_rows)) {
+    		$rows = $data;
+    		foreach ($rows as $key => $value) {
+    			if (!in_array($key, $duplicate_rows) && !array_key_exists($key, $duplicate_rows)) {
+    				unset($rows[$key]);
+    			}
+    		}
+		} else {
+			$rows = $data;
+		}
+    	$matches = array();
+
+    	$query = $this->db->select("id")->from($table)->where($rows)->get();
+
+    	if ($query->num_rows() > 0) {
+    		foreach ($query->result() as $row) {
+    			$matches[] = $row->id;
+    		}
+    	}
+    	return (count($matches) > 0) ? $matches : NULL;
+    }
+
     /**
      * This function saves the linked data
      * @param string $table The table to save in
      * @param array $data  The data to save
      * @param object &$class The class that owns the data
+     * @param string  $duplicate_function The function/check to do if a duplicate is found
      * @return boolean
      * @since 1.3
      * @access public
      */
-    public function Save_Linked ( $table = null, $data = null, &$class) {
+    public function Save_Linked ( $table = null, $data = null, &$class, $duplicate_rows = null, $duplicate_function = "NONE") {
+    	if (is_null($duplicate_function)) {
+    		$duplicate_function = "NONE";
+    	}
+    	if (!is_null($duplicate_rows)) {
+    		$duplicate_rows = self::_Convert_Properties_To_Database_Row($duplicate_rows, $class);
+    	}
     	if (!is_null($table) && !is_null($data) && self::_Table_Exists($table)) {
-    		if (!self::_Array_Data_Exists($table,$data)) {
+    		if (!self::_Linked_Duplicate_Check($class, $data, $table, $duplicate_rows)) {
     			$this->db->insert($table,$data);
 
+    		} else if ($duplicate_function == "STOP") {
+    			return FALSE;
+    		} else if ($duplicate_function == "OVERWRITE" || "ONLY DUBLICATE") {
+    			$id = self::_Get_Data_Id($table, $data);
+    			if (!is_null($id)) {
+	    			$update = $data;
+	    			unset($update["id"]);
+	    			$this->db->where(array("id" => $id))->update($table,$update);
+    			}
+    		} else if ($duplicate_function == "DELETE") {
+    			self::Delete_Existing( $table, $data, $duplicate_rows);
+    			$this->db->insert($table,$data);
     		} else if (isset($data["id"]) && !empty($data["id"])) {
     			$id = $data["id"];
     			$update = $data;
@@ -65,6 +167,58 @@ class Std_Model extends CI_Model{
     		return TRUE;
     	} else {
     		return FALSE;
+    	}
+    }
+
+    /**
+     * This function delete's the row with the specified id
+     * @param string $table The table to find the row in
+     * @param integer $id    The row to delete
+     * @since 1.3
+     * @access public
+     */
+    public function Delete_Row ( $table, $id) {
+    	$this->db->where(array("id" => $id))->delete($table);
+    }
+
+    /**
+     * This function removes all existing data the is a duplicate of the current
+     * @since 1.3
+     * @access private
+     * @param string $table          The table to delete from
+     * @param array $data           The data to match for
+     * @param array $duplicate_rows The rows to match in
+     */
+    public function Delete_Existing ( $table, $data, $duplicate_rows = NULL ) {
+    	if (!is_null($duplicate_rows)) {
+    		$rows = $data;
+    		foreach ($rows as $key => $value) {
+    			if (!in_array($key, $duplicate_rows) && !array_key_exists($key, $duplicate_rows)) {
+    				unset($rows[$key]);
+    			}
+    		}
+		} else {
+			$rows = $data;
+		}
+    	$this->db->where($rows)->from($table)->delete();
+    }
+
+    /**
+     * This function gets the id of a duplicate
+     * @param string $table The table to select from
+     * @param arra $data  The data to search for
+     * @since 1.3
+     * @access private
+     * @return integer
+     */
+    private function _Get_Data_Id ( $table, $data ) {
+    	if ((!array_key_exists("id", $data)) || (isset($data["id"]) && !self::_Exists($data["id"],$table)) && self::_Table_Exists($table)) {
+    		$query = $this->db->select("id")->where($data)->limit(1)->from($table)->get();
+    		if ($query->num_rows() > 0){
+    			return $query->row()->id;
+    		}
+    	} else {
+    		return $data["id"];
     	}
     }
 
@@ -379,7 +533,9 @@ class Std_Model extends CI_Model{
 	 */
 	public function Save(&$Class = NULL){
 		if( property_exists($Class, "Database_Table") && self::_Table_Exists($Class->Database_Table)){
-			self::_Data_Exists($Class);
+			if ((isset($Class->_INTERNAL_OVERWRITE_ON_DUBLICATE) && $Class->_INTERNAL_OVERWRITE_ON_DUBLICATE !== false) || !isset($Class->_INTERNAL_OVERWRITE_ON_DUBLICATE)) {
+				self::_Data_Exists($Class);
+			}
 			if((isset($Class->id) || isset($Class->id)) && self::_Exists($Class->id,$Class->Database_Table)){
 
 				if (method_exists($Class, "Data_Updated")) {
@@ -387,12 +543,14 @@ class Std_Model extends CI_Model{
 				}
 				
 				$Data = $Class->Database();
+				array_unique($Data);
 				if(property_exists($Class, "Database_Table") && count($Data) > 0){
 					$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
 					return true; //Maybe a check for mysql errors
 				} else {
 					return false;
 				}
+				
 			} else{
 				if(isset($Class->id)){
 					$Id = $Class->id;
@@ -412,6 +570,7 @@ class Std_Model extends CI_Model{
 					}
 					
 					$Data = $Class->Database();
+					array_unique($Data);
 					if(!is_null($Data) && !is_null($Class) && count($Data) > 0){
 						$this->db->insert($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
 						if(property_exists($Class, "id")){
