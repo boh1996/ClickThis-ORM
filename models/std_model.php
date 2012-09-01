@@ -5,7 +5,7 @@
  * @license http://illution.dk/copyright © Illution 2012
  * @subpackage Std_Model
  * @category Models
- * @version 1.3
+ * @version 1.31
  * @author Illution <support@illution.dk>
  */ 
 class Std_Model extends CI_Model{
