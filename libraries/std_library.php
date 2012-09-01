@@ -1270,7 +1270,7 @@ class Std_Library{
 			$array = array();
 			foreach ($input as $key => $object) {
 				if ( self::_Contains_Object($object) ) {
-					if ($idFirst === true and property_exists($object, "id")) {
+					if (is_object($object) && $idFirst === true and property_exists($object, "id")) {
 						 $array[$key] = $object->id;
 					} else {
 						if (is_array($object)) {
@@ -2126,7 +2126,7 @@ class Std_Library{
 	 * @param integer $number   An optional key in the import array
 	 */
 	private function _Parse_Object_For_Import ( $property, &$object, &$class, $number) {
-		if (property_exists($class,"_INTERNAL_CURRENT_USER") && isset($class->_INTERNAL_CURRENT_USER) && !is_null($class->_INTERNAL_CURRENT_USER) && method_exists($Object,"Set_Current_User")) {
+		if (property_exists($class,"_INTERNAL_CURRENT_USER") && isset($class->_INTERNAL_CURRENT_USER) && !is_null($class->_INTERNAL_CURRENT_USER) && method_exists($object,"Set_Current_User")) {
 			$object->Set_Current_User($class->_INTERNAL_CURRENT_USER);
 		}	
 	}
