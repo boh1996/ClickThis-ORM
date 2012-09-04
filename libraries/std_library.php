@@ -861,15 +861,23 @@ class Std_Library{
 
 	/**
 	 * This function loads data either by the $Id parameter or by the $Id property
-	 * @param integer $Id The database id to load data from, this parameter is optional,
-	 * if it's not deffined the $Id property value will be used
+	 * @param integer|array $Params The database id to load data from, this parameter is optional,
+	 * if it's not deffined the $Id property value will be used, this can also be an associative array containing
+	 * properties and values to seach for
+	 * @example
+	 * Load(1);
+	 * @example
+	 * $query = array(
+	 * 		"token" => "0f7rLqfJ"
+	 * );
+	 * Load($query;
 	 * @param boolean $Simple If this flag is set to true, then the Load From Class won't be done
 	 * @param array $Fields The fields to select, if not fields are chosen, then all fields are selected
 	 * @since 1.0
 	 * @access public
 	 * @return boolean If the load is succes with data is true returned else is false returned
 	 */
-	public function Load($Id = NULL,$Simple = false,$Fields = NULL) {
+	public function Load($Params = NULL,$Simple = false,$Fields = NULL) {
 		$Arguments = func_get_args();
 		$Parameters = array("Id","Simple","Fields");
 		if(is_null($Arguments)){
@@ -883,18 +891,26 @@ class Std_Library{
 		foreach ($Parameters as $Index => $Parameter) {
 			unset($Arguments[$Index]);
 		}
-		if(!is_null($Id)){
-			$this->id = (int)$Id;
+		if(!is_null($Params) && !is_array($Params)){
+			$this->id = (int)$Params;
 		}
-		if(isset($this->id)){
-			$Id = $this->id;
-		} else {
-			throw new Exception("Not a valid id specified", 1);
-			return false;
+		if (!is_array($Params)) {
+			if(isset($this->id)){
+				$Params = $this->id;
+			} else {
+				throw new Exception("Not a valid id specified", 1);
+				return false;
+			}
 		}
-		if(!is_null($Id) && isset($this->_CI->_INTERNAL_DATABASE_MODEL) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
-			if(!$this->_CI->_INTERNAL_DATABASE_MODEL->Load($Id,$this,$Fields)){
-				return FALSE;
+		if(!is_null($Params) && isset($this->_CI->_INTERNAL_DATABASE_MODEL) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
+			if (!is_array($Params)) {
+				if(!$this->_CI->_INTERNAL_DATABASE_MODEL->Load($Params,$this,$Fields)){
+					return FALSE;
+				}
+			} else {
+				if(!$this->_CI->_INTERNAL_DATABASE_MODEL->Where($Params,$this,$Fields)){
+					return FALSE;
+				}
 			}
 		} else {
 			throw new Exception("No model deffined", 1);

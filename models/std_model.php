@@ -487,6 +487,71 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
+	 * This function does the same as Load but instead it can find by other fields then id
+	 * @since 1.31
+	 * @param array $query  The array of seach fields an values
+	 * @param object &$class The class to load the data up in
+	 * @param array $fields An optional array of fields to select
+	 * @return boolean
+	 */
+	public function Where ( $query = null, &$class, array $fields = null) {
+		if(!is_null($class) && property_exists($class, "Database_Table") && !is_null($query)){
+
+			if (!is_null($fields)) {
+				if (!in_array("id", $fields)) {
+					$fields[] = "id";
+				}
+			} else {
+				$fields = "id";
+			}
+
+			//Create the field string
+			$fields = implode(",", self::_Convert_fields($fields,$class));
+
+			//Convert the class properties to database rows
+			$query = self::_Convert_Properties_To_Database_Row($query);
+
+			//Find the matching row(s)
+			$matching_data = self::Get_Matching_Data($class->Database_Table,$query);
+
+			if(self::_Table_Exists($class->Database_Table) && !is_null($matching_data)){
+				$result = $this->db->limit(1)->select($fields)->where(array("id" => current($matching_data)))->get($class->Database_Table);
+
+				//Get the first result if any
+				$row = current($result->result());
+
+				//If a result is found, use it
+				if (!is_null($row) && is_object($row)) {
+
+					//Assign the data to the class
+					foreach ($row as $key => $value) {
+
+						//Convert the database row to the class property name
+						$key = self::_Convert_Row_To_Property($class,$key);
+
+						//If the property exists assign the value
+						if(property_exists($class, $key)){
+
+							//If the values hould be exploded, do that
+							$value = self::_Explode($value);
+							if($value !== false && !is_null($value)){
+								$class->{$key} = $value;
+							}
+						}
+					}
+					return TRUE;
+				} else {
+					return FALSE;
+				}
+			} else {
+				return FALSE;
+			}	
+		} else {
+			return false;
+		}
+	}
+
+	/**
 	 * This function explodes the input data with the specified Delemiter,
 	 * using trim too
 	 * @since 1.0
