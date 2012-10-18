@@ -1760,14 +1760,14 @@ class Std_Library{
 			$class = $this;
 		}
 		foreach($data as $search => $key){
-			if($search == "" || $key == ""){
+			if(empty($search) || empty($key)){
 				unset($data[$search]);
 			} else {
 				if(property_exists($class, $key)){
 					if(is_null($class->{$key})){
 						unset($data[$search]);
 					}
-					else if($class->{$key} == ""){
+					else if(empty($class->{$key})){
 						unset($data[$key]);
 					} else {
 						$data[$search] = $class->{$key};
