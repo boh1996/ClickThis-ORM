@@ -7,7 +7,7 @@
  * @subpackage Std Data Library Template
  * @category Library template
  * @package ClicKThis
- * @version 1.3
+ * @version 1.311
  * @author Illution <support@illution.dk>
  */ 
 class Std_Library{
