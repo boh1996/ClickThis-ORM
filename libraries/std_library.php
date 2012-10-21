@@ -392,7 +392,7 @@ class Std_Library{
 	 * @since 1.3
 	 * @access private
 	 */
-	private $_INTERNAL_PROPERTIES = array("Database_Table","_CI");
+	private $_INTERNAL_PROPERTIES = array("Database_Table","_CI","_timezone");
 
 	/**
 	 * This array contains the keywords to look for and ignore
@@ -401,6 +401,15 @@ class Std_Library{
 	 * @var array
 	 */
 	private $_INTERNAL_PROPERTY_KEYWORD_IGNORE = array("_INTERNAL");
+
+	/**
+	 * The timezone identifier to use
+	 * @since 1.31
+	 * @access private
+	 * @see http://php.net/manual/en/timezones.php
+	 * @var string
+	 */
+	private $_timezone = "Europe/Copenhagen";
 
 	/**
 	 * This function is the constructor
@@ -414,6 +423,13 @@ class Std_Library{
 		$this->_INTERNAL_DATABASE_MODEL =& $this->_CI->_INTERNAL_DATABASE_MODEL;
 		if ( !is_null($input) ) {
 			self::_Process_Input($input);
+		}
+		if (ini_get("date.timezone")) {
+			date_default_timezone_set(ini_get("date.timezone"));
+		} else if (isset($this->_timezone)) {
+			date_default_timezone_set($this->_timezone);
+		} else {
+			date_default_timezone_set("Europe/Copenhagen");
 		}
 	}
 
@@ -931,6 +947,15 @@ class Std_Library{
 		self::_Load_From_Class($Simple, $Arguments);
 		self::_Force_Array();
 		return TRUE;
+	}
+
+	/**
+	 * This function returns the current CodeIgniter instance
+	 * @since 1.0
+	 * @access public
+	 */
+	public function CodeIgniter () {
+		return $this->_CI;
 	}
 
 	/**
