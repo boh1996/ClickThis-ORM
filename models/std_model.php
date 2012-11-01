@@ -608,10 +608,19 @@ class Std_Model extends CI_Model{
 				}
 				
 				$Data = $Class->Database();
+				foreach ($Data as $key => $value) {
+					if ($value == "") {
+						$Data[$key] = NULL;
+					}
+				}
 				array_unique($Data);
 				if(property_exists($Class, "Database_Table") && count($Data) > 0){
 					$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
-					return true; //Maybe a check for mysql errors
+					if ($this->db->_error_message() === "") {
+						return true;
+					} else {
+						return FALSE;
+					}
 				} else {
 					return false;
 				}
@@ -643,7 +652,11 @@ class Std_Model extends CI_Model{
 						} else {
 							$Class->id = $this->db->insert_id();
 						}
-						return true; //Maybe a check for mysql errors?
+						if ($this->db->_error_message() === "") {
+							return true;
+						} else {
+							return FALSE;
+						}
 					} else {
 						return FALSE;
 					}

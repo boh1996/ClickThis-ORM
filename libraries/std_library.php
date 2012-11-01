@@ -375,6 +375,14 @@ class Std_Library{
 	 */
 	public static $_INTERNAL_EXPORT_FORMATING = NULL;
 
+	/**
+	 * If this is true, then "" or NULL will mean to empty the key
+	 * @since 1.3
+	 * @access public
+	 * @var boolean
+	 */
+	public $_INTERNAL_IMPORT_EMPTY_NULL = true;
+
 	############################# Private Properties #################################
 
 	/**
@@ -2094,58 +2102,64 @@ class Std_Library{
 				if (property_exists($this, "_INTERNAL_IMPORT_IGNORE") && isset($this->_INTERNAL_IMPORT_IGNORE) && is_array($this->_INTERNAL_IMPORT_IGNORE)){
 					$Import_Ignore = $this->_INTERNAL_IMPORT_IGNORE;
 				}
-				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure,$Import_Ignore) && !is_null($Value) && !is_null($Property) && $Value != "" && $Value != "null"){
+				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure,$Import_Ignore)){
 					if (isset($this->_INTERNAL_IMPORT_OVERWRITE) && is_array($this->_INTERNAL_IMPORT_OVERWRITE) && (in_array($Property, $this->_INTERNAL_IMPORT_OVERWRITE) || array_key_exists($Property, $this->_INTERNAL_IMPORT_OVERWRITE))) {
 						$Overwrite = (array_key_exists($Property, $this->_INTERNAL_IMPORT_OVERWRITE))? $this->_INTERNAL_IMPORT_OVERWRITE[$Property] : true;
 					} else {
 						$Overwrite = $Override;
 					}
-					if(self::_Has_Load_From_Class($Property)){
-						$ClassName = self::_Get_Load_From_Class_Data($Property);
-						$this->_CI->load->library($ClassName);
-						if (is_array($Value)) {
-							if(self::_Has_Interger_Keys($Value)){
-								if(self::_Has_Sub_Array($Value)){
-									$Temp = array();
-									foreach ($Value as $Key => $SubContent) {
-										if(is_array($SubContent) && self::_Has_Interger_Keys($SubContent)){
-											//Not Sure		
-										} else if(is_array($SubContent)){
-											$Object = new $ClassName();										
-											if(method_exists($Object, "Import")){
-												$Object->Import($SubContent);
-												self::_Parse_Object_For_Import($Property,$Object, $this, $Key);
-												$Temp[$Key] = $Object;
-											} else {
-												$Temp[$Key] = $SubContent;
+					if (!is_null($Value) && !is_null($Property) && $Value != "" && $Value != "null") {
+						if(self::_Has_Load_From_Class($Property)){
+							$ClassName = self::_Get_Load_From_Class_Data($Property);
+							$this->_CI->load->library($ClassName);
+							if (is_array($Value)) {
+								if(self::_Has_Interger_Keys($Value)){
+									if(self::_Has_Sub_Array($Value)){
+										$Temp = array();
+										foreach ($Value as $Key => $SubContent) {
+											if(is_array($SubContent) && self::_Has_Interger_Keys($SubContent)){
+												//Not Sure		
+											} else if(is_array($SubContent)){
+												$Object = new $ClassName();										
+												if(method_exists($Object, "Import")){
+													$Object->Import($SubContent);
+													self::_Parse_Object_For_Import($Property,$Object, $this, $Key);
+													$Temp[$Key] = $Object;
+												} else {
+													$Temp[$Key] = $SubContent;
+												}
+											} else if(is_integer($SubContent)){
+												$Temp[] = $SubContent;
+											} else if(!is_null($SubContent)){ // Could be an error
+												$Temp[] = $SubContent;
 											}
-										} else if(is_integer($SubContent)){
-											$Temp[] = $SubContent;
-										} else if(!is_null($SubContent)){ // Could be an error
-											$Temp[] = $SubContent;
 										}
+										self::_Merge_Array($Property,$Temp,$Overwrite);
+									} else {
+										self::_Merge_Array($Property,$Value,$Overwrite);
 									}
-									self::_Merge_Array($Property,$Temp,$Overwrite);
 								} else {
-									self::_Merge_Array($Property,$Value,$Overwrite);
+									$Object = new $ClassName();
+									if(method_exists($Object, "Import")){
+										$Object->Import($Value);
+										self::_Parse_Object_For_Import($Property,$Object, $this, 0);
+										self::_Merge_Array($Property,$Object,$Overwrite);
+									} else {
+										self::_Merge_Array($Property,$Value,$Overwrite);
+									}
 								}
-							} else {
-								$Object = new $ClassName();
-								if(method_exists($Object, "Import")){
-									$Object->Import($Value);
-									self::_Parse_Object_For_Import($Property,$Object, $this, 0);
-									self::_Merge_Array($Property,$Object,$Overwrite);
-								} else {
-									self::_Merge_Array($Property,$Value,$Overwrite);
-								}
+							} else if (is_integer($Value)) {
+								$this->{$Property} = $Value;
+							} else if(!is_null($Value)){ //Can be an error, build for later use
+								$this->{$Property} = $Value;
 							}
-						} else if (is_integer($Value)) {
-							$this->{$Property} = $Value;
-						} else if(!is_null($Value)){ //Can be an error, build for later use
-							$this->{$Property} = $Value;
+						} else {
+							self::_Merge_Array($Property,$Value,$Overwrite);
 						}
 					} else {
-						self::_Merge_Array($Property,$Value,$Overwrite);
+						if ($Overwrite && $this->_INTERNAL_IMPORT_EMPTY_NULL === true) {
+							$this->{$Property} = "";
+						}
 					}
 				}
 			}
