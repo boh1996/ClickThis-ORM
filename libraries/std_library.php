@@ -7,7 +7,7 @@
  * @subpackage Std Data Library Template
  * @category Library template
  * @package ClicKThis
- * @version 1.311
+ * @version 1.4
  * @author Illution <support@illution.dk>
  */ 
 class Std_Library{
@@ -1715,7 +1715,7 @@ class Std_Library{
 			}
 
 			//Set the link query, save link data
-			self::_Set_Save_Link_Data($query,$object); //This function call is deprecated, and will be replaced with a better parceing system, that is done when the query is created
+			//self::_Set_Save_Link_Data($query,$object); //This function call is deprecated, and will be replaced with a better parceing system, that is done when the query is created
 
 			//Set the current user that saves the object, and set the save link data
 			self::_Parse_Object_For_Save($object, $property);
@@ -1734,10 +1734,12 @@ class Std_Library{
 					$object->_INTERNAL_IS_LINKED = true;
 					$object->Save();
 				}
-
 				if (property_exists($object, "id")) {
 					$link_data_to_save = array_merge(array($row => $object->{"id"}),self::_Create_Link_Query($query));
-					if ($this->_INTERNAL_DATABASE_MODEL->Dublicate_Check($link_data_to_save, $table, $duplicate_check_rows) && $duplicate_function != "STOP") {
+					
+					//This should be checked if any problems with Duplicate checks occur
+					$exists = $this->_INTERNAL_DATABASE_MODEL->Dublicate_Check($link_data_to_save, $table, $duplicate_check_rows);
+					if (($exists && $duplicate_function != "STOP") || !$exists) {
 						$this->_INTERNAL_DATABASE_MODEL->Save_Linked($table, $link_data_to_save, $object, $duplicate_check_rows);
 					}
 				}
@@ -1875,13 +1877,12 @@ class Std_Library{
 
 			//The properties to save
 			$properties = array_keys(self::_Check_Property_Names($properties, $ignored_properties));
-
 			//Loop through the properties that are marked as linked properties
 			foreach ($properties as $property) {
 
 				//Get the duplicate check function
-				$duplicate_function = (isset($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION[$property]))? $parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION[$property] : NULL;
-
+				$duplicate_function = self::_Get_Duplicate_Function($property,$parent);
+		
 				if (isset($parent->{$property}) && !is_null($parent->{$property}) && !empty($parent->{$property})) {
 					self::_Link_Objects_Data_Duplicate($parent, $parent->{$property}, $property);
 					if (is_array($parent->{$property})) {
@@ -1907,6 +1908,24 @@ class Std_Library{
 					}
 				}
 			}
+		}
+	}
+
+	/**
+	 * This function gets the duplicate check funtion for linked data
+	 * @param string $property The property or key to read for/in
+	 * @param object $parent   The object to read in
+	 * @since 1.4
+	 * @access private
+	 * @return string
+	 */
+	private function _Get_Duplicate_Function ($property, $parent) {
+		if (!is_null($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION) && is_array($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION) && array_key_exists($property, $parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION)) {
+			return $parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION[$property];
+		} else if (!is_null($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION)) {
+			return $parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION;
+		} else {
+			return "NONE";
 		}
 	}
 
@@ -2021,7 +2040,7 @@ class Std_Library{
 		if (isset($link_data[3]) && !empty($link_data[3])) {
 			$duplicate_check_rows = $link_data[3];
 		}
-		echo _Get_Row_Name_Convert();
+		
 		if (!is_array($data)) {
 			$data_to_save = array_merge(array($row => $data),self::_Create_Link_Query($query, $object));
 			$duplicate_function = (isset($object->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION[$property]))? $object->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION[$property]: null;

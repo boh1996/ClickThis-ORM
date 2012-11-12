@@ -234,7 +234,7 @@ class Std_Model extends CI_Model{
     	if ((!array_key_exists("id", $data)) || (isset($data["id"]) && !self::_Exists($data["id"],$table)) && self::_Table_Exists($table)) {
     		return ($this->db->where($data)->from($table)->count_all_results() > 0);
     	} else {
-    		return true;
+    		return false;
     	}
     }
 
