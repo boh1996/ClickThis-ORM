@@ -31,7 +31,7 @@ class Std_Library{
 	 * @example
 	 * $_INTERNAL_DATABASE_NAME_CONVERT = array("Facebook_Id" =>"Facebook");
 	 */
-	public static $_INTERNAL_DATABASE_NAME_CONVERT = NULL;
+	public $_INTERNAL_DATABASE_NAME_CONVERT = NULL;
 
 	/**
 	 * The members of this array will be left out
@@ -40,7 +40,7 @@ class Std_Library{
 	 * @access public
 	 * @var array
 	 */
-	public static $_INTERNAL_DATABASE_SAVE_IGNORE = NULL;
+	public $_INTERNAL_DATABASE_SAVE_IGNORE = NULL;
 
 	/**
 	 * This array contains the properties that contain classes,
@@ -52,7 +52,7 @@ class Std_Library{
 	 * @example
 	 * $_INTERNAL_SAVE_THESE_CHILDS_FIRST = array("Property Name");
 	 */
-	public static $_INTERNAL_SAVE_THESE_CHILDS_FIRST = NULL;
+	public $_INTERNAL_SAVE_THESE_CHILDS_FIRST = NULL;
 
 	/**
 	 * This property can contain properties to be ignored when exporting
@@ -64,7 +64,7 @@ class Std_Library{
 	 * @example
 	 * $_INTERNAL_EXPORT_INGNORE = array("CI","_CI");
 	 */
-	public static $_INTERNAL_EXPORT_INGNORE = NULL;
+	public $_INTERNAL_EXPORT_INGNORE = NULL;
 
 	/**
 	 * This property can contain properties to be ignored, when the database flag is true in export.
@@ -76,7 +76,7 @@ class Std_Library{
 	 * @example
 	 * $_INTERNAL_DATABASE_EXPORT_INGNORE = array("id");
 	 */
-	public static $_INTERNAL_DATABASE_EXPORT_INGNORE = NULL;
+	public $_INTERNAL_DATABASE_EXPORT_INGNORE = NULL;
 
 	/**
 	 * This property contain values for converting databse rows to class properties
@@ -119,7 +119,7 @@ class Std_Library{
 	 * @example
 	 * $_INTERNAL_LOAD_FROM_CLASS = array("TargetGroup" => "Group");
 	 */
-	public static $_INTERNAL_LOAD_FROM_CLASS = NULL;
+	public $_INTERNAL_LOAD_FROM_CLASS = NULL;
 
 	/**
 	 * This property is used to declare link's between other databases and a class property in this class
@@ -131,7 +131,7 @@ class Std_Library{
 	 * $this->_INTERNAL_LINK_PROPERTIES = array("Questions" => array("Questions",array("SeriesId" => "id"),array("Properties to select data from")));
 	 * @see Link
 	 */
-	public static $_INTERNAL_LINK_PROPERTIES = NULL;
+	public $_INTERNAL_LINK_PROPERTIES = NULL;
 
 	/**
 	 * This property is used to determine what properties is going to be ignored,
@@ -143,7 +143,7 @@ class Std_Library{
 	 * @example
 	 * $this->_INTERNAL_LINK_PROPERTIES = array("Email,"Google_Id");
 	 */
-	public static $_INTERNAL_SECURE_EXPORT_IGNORE = NULL;
+	public $_INTERNAL_SECURE_EXPORT_IGNORE = NULL;
 
 	/**
 	 * This property is used to give a property of each childobject in a property a given value
@@ -155,7 +155,7 @@ class Std_Library{
 	 * @example
 	 * array("Class Property" => array("Property" => "Value or name of property of this class"));
 	 */
-	public static $_INTERNAL_SAVE_LINK = NULL;
+	public $_INTERNAL_SAVE_LINK = NULL;
 
 	/**
 	 * This property is used to force a specific property to be an array
@@ -166,7 +166,7 @@ class Std_Library{
 	 * @example
 	 * $this->_INTERNAL_FORCE_ARRAY = array("Questions");
 	 */
-	public static $_INTERNAL_FORCE_ARRAY = NULL;
+	public $_INTERNAL_FORCE_ARRAY = NULL;
 
 	/**
 	 * This parameter is used to control the behavior, of the dublicate check,
@@ -184,7 +184,7 @@ class Std_Library{
 	 * @access public
 	 * @static
 	 */
-	public static $_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION = NULL;
+	public $_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION = NULL;
 
 	/**
 	 * This property is used to deffine properties, in the LOAD_FROM_CLASS
@@ -197,7 +197,7 @@ class Std_Library{
 	 * array("Class Property" => "Boolean");
 	 * @internal This is a class setting property
 	 */
-	public static $_INTERNAL_SIMPLE_LOAD = NULL;
+	public $_INTERNAL_SIMPLE_LOAD = NULL;
 
 	/**
 	 * This property is used to deffine a set of rows that is gonna be
@@ -210,7 +210,7 @@ class Std_Library{
 	 * @example
 	 * array("SeriesId","Title");
 	 */
-	public static $_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS = NULL;
+	public $_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS = NULL;
 
 	/**
 	 * This property is used to abort the Dublicate check if
@@ -221,7 +221,7 @@ class Std_Library{
 	 * @static
 	 * @internal This is an internal class setting
 	 */
-	public static $_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL = NULL;
+	public $_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL = NULL;
 
 	/**
 	 * This property is used to link data based on data in an array, and
@@ -236,7 +236,7 @@ class Std_Library{
 	 * @example
 	 * $this->_INTERNAL_PROPERTY_LINK = array("Options" => array("Values","OptionId"));
 	 */
-	public static $_INTERNAL_PROPERTY_LINK = NULL;
+	public $_INTERNAL_PROPERTY_LINK = NULL;
 
 	/**
 	 * Use this array to set properties that always should be overwritten
@@ -244,7 +244,7 @@ class Std_Library{
 	 * @access public
 	 * @var array
 	 */
-	public static $_INTERNAL_IMPORT_OVERWRITE = NULL;
+	public $_INTERNAL_IMPORT_OVERWRITE = NULL;
 
 	/**
 	 * This function concerts "1" to true and 0 and NULL to false,
@@ -254,7 +254,7 @@ class Std_Library{
 	 * @access public
 	 * @static
 	 */
-	public static $_INTERNAL_CONVERT_TO_BOOLEAN = NULL;
+	public $_INTERNAL_CONVERT_TO_BOOLEAN = NULL;
 
 	/**
 	 * If this property is set to true and a dublicate is found, the dublicate is overwritten
@@ -262,7 +262,7 @@ class Std_Library{
 	 * @access public
 	 * @var boolean
 	 */
-	public static $_INTERNAL_OVERWRITE_ON_DUBLICATE = false;
+	public $_INTERNAL_OVERWRITE_ON_DUBLICATE = false;
 
 	/**
 	 * An array containing the property(ies) that is going to be filled with the timestamp of the last 
@@ -271,7 +271,7 @@ class Std_Library{
 	 * @access public
 	 * @var array|string
 	 */
-	public static $_INTERNAL_LAST_UPDATED_PROPERTY = NULL;
+	public $_INTERNAL_LAST_UPDATED_PROPERTY = NULL;
 
 	/**
 	 * The property(ies) which is going to be filled with the timestamp of the first save
@@ -279,7 +279,7 @@ class Std_Library{
 	 * @since 1.21
 	 * @access public
 	 */
-	public static $_INTERNAL_CREATED_TIME_PROPERTY = NULL;
+	public $_INTERNAL_CREATED_TIME_PROPERTY = NULL;
 
 	/**
 	 * The property(ies) to fill with the user that has created the data
@@ -287,7 +287,7 @@ class Std_Library{
 	 * @access public
 	 * @var array|string
 	 */
-	public static $_INTERNAL_CREATED_USER_PROPERTY = NULL;
+	public $_INTERNAL_CREATED_USER_PROPERTY = NULL;
 
 	/**
 	 * The property(ies) to fill with the user that has last updated the data
@@ -295,7 +295,7 @@ class Std_Library{
 	 * @access public
 	 * @var array|string
 	 */
-	public static $_INTERNAL_LAST_UPDATED_USER_PROPERTY = NULL;
+	public $_INTERNAL_LAST_UPDATED_USER_PROPERTY = NULL;
 
 	/**
 	 * This property can either contain an array of properties to ignore
@@ -306,7 +306,7 @@ class Std_Library{
 	 * @since 1.3
 	 * @access public
 	 */
-	public static $_INTERNAL_LINK_SAVE_IGNORE = NULL;
+	public $_INTERNAL_LINK_SAVE_IGNORE = NULL;
 
 	/**
 	 * A property to store the current user
@@ -314,7 +314,7 @@ class Std_Library{
 	 * @access public
 	 * @var integer
 	 */
-	public static $_INTERNAL_CURRENT_USER = NULL;
+	public $_INTERNAL_CURRENT_USER = NULL;
 
 	/**
 	 * An array containing the fields to ignore when importing
@@ -322,7 +322,7 @@ class Std_Library{
 	 * @access public
 	 * @var array
 	 */
-	public static $_INTERNAL_IMPORT_IGNORE = NULL;
+	public $_INTERNAL_IMPORT_IGNORE = NULL;
 
 	/**
 	 * This array contains the keywords to ignore when exporting
@@ -330,7 +330,7 @@ class Std_Library{
 	 * @since 1.3
 	 * @access public
 	 */
-	public static $_INTERNAL_KEYWORD_IGNORE = NULL;
+	public $_INTERNAL_KEYWORD_IGNORE = NULL;
 
 	/**
 	 * This function can be used to set the sorting function and options for sorting
@@ -341,7 +341,7 @@ class Std_Library{
 	 * @since 1.3
 	 * @access public
 	 */
-	public static $_INTERNAL_EXPORT_SORTING = null;
+	public $_INTERNAL_EXPORT_SORTING = null;
 
 	/**
 	 * The database export array implode delemiter
@@ -360,7 +360,7 @@ class Std_Library{
 	 * @example
 	 * array("property" => array("sort_function", array("sort_options")))
 	 */
-	public static $_INTERNAL_SORT_PROPERTIES = NULL;
+	public $_INTERNAL_SORT_PROPERTIES = NULL;
 
 	/**
 	 * This property is used when exporting,
@@ -373,7 +373,7 @@ class Std_Library{
 	 * "property" => array("date", "Y-d-m")
 	 * "property" => boolean // Because the boolean hasn't got any options
 	 */
-	public static $_INTERNAL_EXPORT_FORMATING = NULL;
+	public $_INTERNAL_EXPORT_FORMATING = NULL;
 
 	/**
 	 * If this is true, then "" or NULL will mean to empty the key
@@ -392,7 +392,7 @@ class Std_Library{
 	 * @since 1.0
 	 * @access private
 	 */
-	private $_CI = NULL;
+	protected $_CI = NULL;
 
 	/**
 	 * This array contains the std_library properties which is going to be ignored on export
@@ -830,7 +830,7 @@ class Std_Library{
 			}
 		}
 
-		if (self::_Isset("_INTERNAL_LAST_UPDATED_USER_PROPERTY") && !is_null($this->_INTERNAL_CURRENT_USER)) {
+		if (self::_Isset("_INTERNAL_LAST_UPDATED_USER_PROPERTY") && isset($this->_INTERNAL_CURRENT_USER)) {
 			if (is_array($this->_INTERNAL_LAST_UPDATED_USER_PROPERTY)) {
 				foreach ($this->_INTERNAL_LAST_UPDATED_USER_PROPERTY as $Property) {
 					if (property_exists($this, $Property)) {
@@ -844,7 +844,7 @@ class Std_Library{
 			}
 		}
 
-		if (self::_Isset("_INTERNAL_CREATED_USER_PROPERTY") && !is_null($this->_INTERNAL_CURRENT_USER)) {
+		if (self::_Isset("_INTERNAL_CREATED_USER_PROPERTY") && isset($this->_INTERNAL_CURRENT_USER)) {
 			if (is_array($this->_INTERNAL_CREATED_USER_PROPERTY)) {
 				foreach ($this->_INTERNAL_CREATED_USER_PROPERTY as $Property) {
 					if (property_exists($this, $Property)) {
@@ -884,6 +884,23 @@ class Std_Library{
 	}
 
 	/**
+	 * This function checks if the fields are usable
+	 * @since 1.4
+	 * @access private
+	 * @param object $object The object to check in
+	 * @param array $fields The fields array to evaluate
+	 * @return array
+	 */
+	private function _Check_Fields (&$object, $fields) {
+		foreach ($fields as $key => $field) {
+			if (!property_exists($object, $field)) {
+				unset($fields[$key]);
+			}
+		}
+		return $fields;
+	}
+
+	/**
 	 * This function loads data either by the $Id parameter or by the $Id property
 	 * @param integer|array $Params The database id to load data from, this parameter is optional,
 	 * if it's not deffined the $Id property value will be used, this can also be an associative array containing
@@ -896,7 +913,7 @@ class Std_Library{
 	 * );
 	 * Load($query;
 	 * @param boolean $Simple If this flag is set to true, then the Load From Class won't be done
-	 * @param array $Fields The fields to select, if not fields are chosen, then all fields are selected
+	 * @param array $Fields The fields to select, if no fields are chosen, then all fields are selected
 	 * @since 1.0
 	 * @access public
 	 * @return boolean If the load is succes with data is true returned else is false returned
@@ -911,6 +928,8 @@ class Std_Library{
 		if (is_null($Fields) || !is_array($Fields)) {
 			$FillFields = true;
 			$Fields = self::_Get_Fields();
+		} else {
+			$Fields = self::_Check_Fields($this,$Fields);
 		}
 		foreach ($Parameters as $Index => $Parameter) {
 			unset($Arguments[$Index]);
@@ -1590,7 +1609,6 @@ class Std_Library{
 	/**
 	 * This function saves the local class data to the database row of the Id property
 	 * @return string This function can return a error string
-	 * @todo Make the linked properties be saved to, and with the an updated id, etc SeriesId = $this->id
 	 * @param boolean $save_self If the object should save it self or only it's childrens
 	 * @since 1.0
 	 * @access public
@@ -1920,9 +1938,9 @@ class Std_Library{
 	 * @return string
 	 */
 	private function _Get_Duplicate_Function ($property, $parent) {
-		if (!is_null($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION) && is_array($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION) && array_key_exists($property, $parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION)) {
+		if (isset($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION) && is_array($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION) && array_key_exists($property, $parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION)) {
 			return $parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION[$property];
-		} else if (!is_null($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION)) {
+		} else if (isset($parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION)) {
 			return $parent->_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION;
 		} else {
 			return "NONE";
@@ -2916,7 +2934,7 @@ class Std_Library{
 					$Query[$Key] = $Export[$Key];
 				} else {
 					if(self::_Abort_On_Empty()){
-						return false;
+						return true;
 					}
 				}
 			}
