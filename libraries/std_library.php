@@ -239,6 +239,17 @@ class Std_Library{
 	public $_INTERNAL_PROPERTY_LINK = NULL;
 
 	/**
+	 * Use this property to merge all the results from array(array(),array()) into array("",""),
+	 * for linked properties. This will only be done if it's only one property from each result that should be grabbed
+	 * @example
+	 * _INTERNAL_LINKED_MERGER_RESULTS = array("modes" => true);
+	 * @var array
+	 * @since 1.4
+	 * @access public
+	 */
+	public $_INTERNAL_LINKED_MERGE_RESULTS = null;
+
+	/**
 	 * Use this array to set properties that always should be overwritten
 	 * @since 1.3
 	 * @access public
@@ -300,7 +311,7 @@ class Std_Library{
 	/**
 	 * This property can either contain an array of properties to ignore
 	 * or the keyword "DATABASE" that uses the DATABASE_EXPORT_IGNORE list as ignoring list or it can be an array
-	 * where the first value is "MERGE" and the second is an array containing property nanmes,
+	 * where the first value is "MERGE" and the second is an array containing property names,
 	 * this will merges the array with the DATABASE_EXPORT_IGNORE list
 	 * @var array|string
 	 * @since 1.3
@@ -2133,13 +2144,15 @@ class Std_Library{
 	 * @access public
 	 */
 	public function Import($Array = NULL,$Override = false,$Secure = false){
-		if(!is_null($Array) && is_array($Array)){
+		if(!is_null($Array) && is_array($Array) && count($Array) > 0){
+			$Result = false;
 			foreach ($Array as $Property => $Value) {
 				$Import_Ignore = array();
 				if (property_exists($this, "_INTERNAL_IMPORT_IGNORE") && isset($this->_INTERNAL_IMPORT_IGNORE) && is_array($this->_INTERNAL_IMPORT_IGNORE)){
 					$Import_Ignore = $this->_INTERNAL_IMPORT_IGNORE;
 				}
 				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure,$Import_Ignore)){
+					$Result = true;
 					if (isset($this->_INTERNAL_IMPORT_OVERWRITE) && is_array($this->_INTERNAL_IMPORT_OVERWRITE) && (in_array($Property, $this->_INTERNAL_IMPORT_OVERWRITE) || array_key_exists($Property, $this->_INTERNAL_IMPORT_OVERWRITE))) {
 						$Overwrite = (array_key_exists($Property, $this->_INTERNAL_IMPORT_OVERWRITE))? $this->_INTERNAL_IMPORT_OVERWRITE[$Property] : true;
 					} else {
@@ -2200,12 +2213,13 @@ class Std_Library{
 					}
 				}
 			}
+
 		} else {
 			return FALSE;
 		}
 		self::_Load_From_Class();
 		self::_Force_Array();
-		return TRUE;
+		return $Result;
 	}
 
 	/**
@@ -3013,12 +3027,16 @@ class Std_Library{
 	 * from and object or more properties
 	 * @param object $Object     The object to get the data from
 	 * @param string|array $Properties The property/properties to get
+	 * @param boolean $Merge If the data should be merged to one array
 	 * @return array|string
 	 * @since 1.1
 	 * @access private
 	 */
-	private function _Get_Data_From_Object($Object = NULL,$Properties = NULL){
+	private function _Get_Data_From_Object ($Object = NULL,$Properties = NULL, $Merge = false) {
 		if(!is_null($Object) && is_object($Object) && !is_null($Properties)){
+			if (count($Properties) == 1 && $Merge == true) {
+				$Properties = array_shift(array_values($Properties));;
+			}
 			if(is_array($Properties)){
 				$Temp = array();
 				foreach ($Properties as $Property) {
@@ -3051,15 +3069,21 @@ class Std_Library{
 				$UseProperty = "id";
 			}
 
+			if (isset($this->_INTERNAL_LINKED_MERGE_RESULTS) && is_array($this->_INTERNAL_LINKED_MERGE_RESULTS) && array_key_exists($Property, $this->_INTERNAL_LINKED_MERGE_RESULTS)) {
+				$Merge = $this->_INTERNAL_LINKED_MERGE_RESULTS[$Property];
+			} else {
+				$Merge = false;
+			}
+
 			if(count($Data) > 1){
 				$Temp = array();
 				foreach ($Data as $Object) {
 					if(is_array($UseProperty)){
-						$Temp[] = self::_Get_Data_From_Object($Object,$UseProperty);
+						$Temp[] = self::_Get_Data_From_Object($Object,$UseProperty,$Merge);
 					} else {
 						if(property_exists($Object, $UseProperty)){
 							self:: _Remove_Where($Property,$Object->{$UseProperty});
-							$Temp[] = self::_Get_Data_From_Object($Object,$UseProperty);
+							$Temp[] = self::_Get_Data_From_Object($Object,$UseProperty,$Merge);
 						}	
 					}
 				}
@@ -3080,9 +3104,9 @@ class Std_Library{
 				}
 				if(!is_null($Data) && is_object($Data)){
 					if(is_array($this->{$Property})){
-						$this->{$Property}[] = self::_Get_Data_From_Object($Data,$UseProperty);
+						$this->{$Property}[] = self::_Get_Data_From_Object($Data,$UseProperty,$Merge);
 					} else {
-						$this->{$Property} = self::_Get_Data_From_Object($Data,$UseProperty);
+						$this->{$Property} = self::_Get_Data_From_Object($Data,$UseProperty,$Merge);
 					}
 				}
 			}
