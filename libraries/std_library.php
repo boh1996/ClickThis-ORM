@@ -3087,6 +3087,18 @@ class Std_Library{
 						}	
 					}
 				}
+				if (isset($this->_INTERNAL_LOAD_FROM_CLASS) && is_array($this->_INTERNAL_LOAD_FROM_CLASS) && array_key_exists($Property, $this->_INTERNAL_LOAD_FROM_CLASS)) {
+					$TempValues = array();
+
+					foreach ($Temp as $keyName => $keyValue) {
+						if (is_array($keyValue)) {
+							$TempValues[] = array_shift(array_values($keyValue));
+						} else {
+							$TempValues[] = $keyValue;
+						}
+					}
+					$Temp = $TempValues;
+				}
 				if(count($Temp) > 0){
 					if(is_null($this->{$Property})){
 						$this->{$Property} = $Temp;
@@ -3103,10 +3115,25 @@ class Std_Library{
 					$Data = $Data[0];
 				}
 				if(!is_null($Data) && is_object($Data)){
+					$Value = self::_Get_Data_From_Object($Data,$UseProperty,$Merge);
+
+					if (isset($this->_INTERNAL_LOAD_FROM_CLASS) && is_array($this->_INTERNAL_LOAD_FROM_CLASS) && array_key_exists($Property, $this->_INTERNAL_LOAD_FROM_CLASS)) {
+						$TempValues = array();
+
+						foreach ($Value as $keyName => $keyValue) {
+							if (is_array($keyValue)) {
+								$TempValues[] = array_shift(array_values($keyValue));
+							} else {
+								$TempValues[] = $keyValue;
+							}
+						}
+						$Value = $TempValues;
+					}
+
 					if(is_array($this->{$Property})){
-						$this->{$Property}[] = self::_Get_Data_From_Object($Data,$UseProperty,$Merge);
+						$this->{$Property}[] = $Value;
 					} else {
-						$this->{$Property} = self::_Get_Data_From_Object($Data,$UseProperty,$Merge);
+						$this->{$Property} = $Value;
 					}
 				}
 			}
