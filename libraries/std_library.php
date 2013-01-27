@@ -258,6 +258,14 @@ class Std_Library{
 	public $_INTERNAL_IMPORT_OVERWRITE = NULL;
 
 	/**
+	 * If the class has been loaded
+	 * @since 1.4
+	 * @access public
+	 * @var boolean
+	 */
+	public $_INTERNAL_LOADED = false;
+
+	/**
 	 * This function concerts "1" to true and 0 and NULL to false,
 	 * in the parameters deffined here.
 	 * @var array
@@ -984,6 +992,7 @@ class Std_Library{
 		self::_Link_Properties($Fields);
 		self::_Load_From_Class($Simple, $Arguments);
 		self::_Force_Array();
+		$this->_INTERNAL_LOADED = true;
 		return TRUE;
 	}
 
@@ -1083,6 +1092,16 @@ class Std_Library{
 			return $data;
 		}
 		return $data;
+	}
+
+	/**
+	 * This function is a getter for _INTERNAL_LOADED
+	 * @since 1.0
+	 * @access public
+	 * @return boolean
+	 */
+	public function is_loaded () {
+		return $this->_INTERNAL_LOADED;
 	}
 
 	/**
@@ -1763,14 +1782,33 @@ class Std_Library{
 					$object->_INTERNAL_IS_LINKED = true;
 					$object->Save();
 				}
-				if (property_exists($object, "id")) {
-					$link_data_to_save = array_merge(array($row => $object->{"id"}),self::_Create_Link_Query($query));
-					
-					//This should be checked if any problems with Duplicate checks occur
-					$exists = $this->_INTERNAL_DATABASE_MODEL->Dublicate_Check($link_data_to_save, $table, $duplicate_check_rows);
-					if (($exists && $duplicate_function != "STOP") || !$exists) {
-						$this->_INTERNAL_DATABASE_MODEL->Save_Linked($table, $link_data_to_save, $object, $duplicate_check_rows);
+
+				if ( is_array($row) && count($row) > 1 ) {
+					$data_rows = array();
+					foreach ( $row as $key ) {
+						if (property_exists($object, $key) && isset($object->{$key}) && $object->{$key} != "") {
+							$data_rows[$key] = $object->{$key};
+						}
 					}
+				} else {
+					if ( is_array($row) ) {
+						$row = current($row);
+					}
+					if (property_exists($object, "id") && isset($object->{"id"}) && $object->{"id"} != "") {
+						$data_rows = array($row => $object->{"id"});
+					}
+				}
+
+				if ( count($data_rows) == 0) {
+					return false;
+				}
+
+				$link_data_to_save = array_merge($data_rows,self::_Create_Link_Query($query));
+					
+				//This should be checked if any problems with Duplicate checks occur
+				$exists = $this->_INTERNAL_DATABASE_MODEL->Dublicate_Check($link_data_to_save, $table, $duplicate_check_rows);
+				if (($exists && $duplicate_function != "STOP") || !$exists) {
+					$this->_INTERNAL_DATABASE_MODEL->Save_Linked($table, $link_data_to_save, $object, $duplicate_check_rows);
 				}
 			}			
 		}
