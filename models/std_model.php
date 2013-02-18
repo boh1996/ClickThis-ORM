@@ -2,7 +2,7 @@
 /**
  * This is the standard model, for normal datas
  * @package Standard Model
- * @license http://illution.dk/copyright © Illution 2012
+ * @license https://illution.dk/copyright © Illution 2012
  * @subpackage Std_Model
  * @category Models
  * @version 1.31
