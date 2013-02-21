@@ -25,7 +25,6 @@ class Std_Library{
 	 * to database row names
 	 * @var array
 	 * @access public
-	 * @static
 	 * @since 1.0
 	 * @internal This is an internal name convert table
 	 * @example
@@ -48,7 +47,6 @@ class Std_Library{
 	 * @var array
 	 * @since 1.0
 	 * @access public
-	 * @static
 	 * @example
 	 * $_INTERNAL_SAVE_THESE_CHILDS_FIRST = array("Property Name");
 	 */
@@ -58,7 +56,6 @@ class Std_Library{
 	 * This property can contain properties to be ignored when exporting
 	 * @var array
 	 * @access public
-	 * @static
 	 * @since 1.0
 	 * @internal This is an class variable used for ignoring variables in export
 	 * @example
@@ -70,7 +67,6 @@ class Std_Library{
 	 * This property can contain properties to be ignored, when the database flag is true in export.
 	 * @var array
 	 * @access public
-	 * @static
 	 * @since 1.0
 	 * @internal This is an internal ignoring list for export with the database flag turned on
 	 * @example
@@ -83,20 +79,18 @@ class Std_Library{
 	 * @var array
 	 * @see $_INTERNAL_DATABASE_NAME_CONVERT
 	 * @access public
-	 * @static
 	 * @since 1.0
 	 * @internal This is an internal databse column to class property convert table
 	 * @example
 	 * $_INTERNAL_ROW_NAME_CONVERT = array("Facebook" => "Facebook_Id");
 	 */
-	public static $_INTERNAL_ROW_NAME_CONVERT = NULL;
+	public $_INTERNAL_ROW_NAME_CONVERT = NULL;
 
 	/**
 	 * This property contains the database model to use
 	 * @var object
 	 * @since 1.0
 	 * @access public
-	 * @static
 	 * @example
 	 * $this->_CI->load->model("Model_User","_INTERNAL_DATABASE_MODEL");
 	 * @internal This property holds the CodeIgniter database model, 
@@ -114,7 +108,6 @@ class Std_Library{
 	 * @var array
 	 * @since 1.0
 	 * @access public
-	 * @static
 	 * @internal This is a class setting variable
 	 * @example
 	 * $_INTERNAL_LOAD_FROM_CLASS = array("TargetGroup" => "Group");
@@ -127,7 +120,6 @@ class Std_Library{
 	 * @since 1.0
 	 * @access public
 	 * @example
-	 * @static
 	 * $this->_INTERNAL_LINK_PROPERTIES = array("Questions" => array("Questions",array("SeriesId" => "id"),array("Properties to select data from")));
 	 * @see Link
 	 */
@@ -138,7 +130,6 @@ class Std_Library{
 	 * if the secrure parameter is turned on in the export function
 	 * @var array
 	 * @since 1.0
-	 * @static
 	 * @access public
 	 * @example
 	 * $this->_INTERNAL_LINK_PROPERTIES = array("Email,"Google_Id");
@@ -150,7 +141,6 @@ class Std_Library{
 	 * @var array
 	 * @since 1.1
 	 * @access public
-	 * @static
 	 * @internal This is a class settings property
 	 * @example
 	 * array("Class Property" => array("Property" => "Value or name of property of this class"));
@@ -160,7 +150,6 @@ class Std_Library{
 	/**
 	 * This property is used to force a specific property to be an array
 	 * @var array
-	 * @static
 	 * @access public
 	 * @since 1.0
 	 * @example
@@ -182,7 +171,6 @@ class Std_Library{
 	 * array("employees" => "STOP");
 	 * @since 1.3
 	 * @access public
-	 * @static
 	 */
 	public $_INTERNAL_LINK_SAVE_DUPLICATE_FUNCTION = NULL;
 
@@ -192,7 +180,6 @@ class Std_Library{
 	 * @var array
 	 * @since 1.1
 	 * @access public
-	 * @static
 	 * @example
 	 * array("Class Property" => "Boolean");
 	 * @internal This is a class setting property
@@ -205,7 +192,6 @@ class Std_Library{
 	 * @var array
 	 * @access public
 	 * @since 1.1
-	 * @static
 	 * @internal This is a internal settings variable
 	 * @example
 	 * array("SeriesId","Title");
@@ -218,7 +204,6 @@ class Std_Library{
 	 * @var boolean
 	 * @since 1.1
 	 * @access public
-	 * @static
 	 * @internal This is an internal class setting
 	 */
 	public $_INTERNAL_NOT_ALLOWED_DUBLICATE_ROWS_ABORT_ON_NULL = NULL;
@@ -229,7 +214,6 @@ class Std_Library{
 	 * @var array
 	 * @since 1.1
 	 * @access public
-	 * @static
 	 * @internal This is an internal settings var
 	 * @example
 	 * array("Property Name" => array("Table","Row"))
@@ -271,7 +255,6 @@ class Std_Library{
 	 * @var array
 	 * @since 1.1
 	 * @access public
-	 * @static
 	 */
 	public $_INTERNAL_CONVERT_TO_BOOLEAN = NULL;
 
@@ -582,7 +565,6 @@ class Std_Library{
 	 * @param string $name The name of the function to call
 	 * @param integer|string|array $arguments The arguments to pass to the function
 	 * @return boolean|string|object|integer|array
-	 * @static
 	 * @access public
 	 */
 	public static function __callStatic ( $function, $arguments ) {}
@@ -3156,6 +3138,11 @@ class Std_Library{
 					$Value = self::_Get_Data_From_Object($Data,$UseProperty,$Merge);
 
 					if (isset($this->_INTERNAL_LOAD_FROM_CLASS) && is_array($this->_INTERNAL_LOAD_FROM_CLASS) && array_key_exists($Property, $this->_INTERNAL_LOAD_FROM_CLASS)) {
+							
+						if ( ! is_array($Value) ) {
+							$Value = array($Value);
+						}
+
 						$TempValues = array();
 
 						foreach ($Value as $keyName => $keyValue) {
@@ -3165,6 +3152,7 @@ class Std_Library{
 								$TempValues[] = $keyValue;
 							}
 						}
+
 						$Value = $TempValues;
 					}
 
