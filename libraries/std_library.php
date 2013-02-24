@@ -675,6 +675,17 @@ class Std_Library{
 	}
 
 	/**
+	 * This function converts this class' db data to class data ready for import
+	 * @since 1.4
+	 * @access public
+	 * @param array $data The array data to convert
+	 * @return array
+	 */
+	public function Convert_From_Database ( $data ) {
+		return $this->_INTERNAL_DATABASE_MODEL->Convert_From_Database($data, $this);
+	}
+
+	/**
 	 * This function adds data, to this class either from a class or from an array,
 	 * and if the Database flag is set to true the data will be saved to the database.
 	 * @param object  &$Class   This parameter should contain a class that has the data to add deffined,
@@ -902,6 +913,24 @@ class Std_Library{
 	}
 
 	/**
+	 * This function copy another object into this
+	 * @since 1.4
+	 * @access public
+	 * @param object $object The object to copy from
+	 */
+	private function _Copy_Object_To_This ( $object ) {
+		$reflect = new ReflectionClass($object);
+
+		foreach($reflect->getProperties(ReflectionProperty::IS_PUBLIC) as $prop) {
+			$property = $prop->getName();
+			if ( property_exists($this, $property) ) {
+
+		    	$this->$property = $prop->getValue($object);
+			}
+		}
+	}
+
+	/**
 	 * This function loads data either by the $Id parameter or by the $Id property
 	 * @param integer|array $Params The database id to load data from, this parameter is optional,
 	 * if it's not deffined the $Id property value will be used, this can also be an associative array containing
@@ -920,6 +949,16 @@ class Std_Library{
 	 * @return boolean If the load is succes with data is true returned else is false returned
 	 */
 	public function Load($Params = NULL,$Simple = false,$Fields = NULL) {
+		if(!is_null($Params) && !is_array($Params)){
+			$this->id = (int)$Params;
+		}
+		$global_name = get_class($this)."_".$this->id;
+
+		if ( isset($GLOBALS[$global_name]) ) {
+			self::_Copy_Object_To_This($GLOBALS[$global_name]);
+			return true;
+		}
+
 		$Arguments = func_get_args();
 		$Parameters = array("Id","Simple","Fields");
 		if(is_null($Arguments)){
@@ -935,9 +974,7 @@ class Std_Library{
 		foreach ($Parameters as $Index => $Parameter) {
 			unset($Arguments[$Index]);
 		}
-		if(!is_null($Params) && !is_array($Params)){
-			$this->id = (int)$Params;
-		}
+
 		if (!is_array($Params)) {
 			if(isset($this->id)){
 				$Params = $this->id;
@@ -975,6 +1012,7 @@ class Std_Library{
 		self::_Load_From_Class($Simple, $Arguments);
 		self::_Force_Array();
 		$this->_INTERNAL_LOADED = true;
+		$GLOBALS[$global_name] = $this;
 		return TRUE;
 	}
 

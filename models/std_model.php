@@ -299,6 +299,29 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
+	 * This function converts an array of db data to class data
+	 * @since 1.31
+	 * @access private
+	 * @param array $data  The data to convert
+	 * @param object $class The class to use as refference
+	 * @return array
+	 */
+	private function _Convert_Database_Rows_To_Properties ( $data, &$class ) {
+		if ( ! is_null($data) ) {
+			$table = self::_Create_Conversion_Table($class, "Row");
+			if(count($table) > 0){
+				$array = array();
+				foreach ($data as $key => $value) {
+					$array[self::_Convert_Row_To_Property($class,$key,$table)] = $value;
+				}
+				return $array;
+			} else {
+				return $data;
+			}	
+		}
+	}
+
+	/**
 	 * This function is a function that compromises the _Convert_Properties_To_Database_Row function
 	 * @param array $data   The data to convert
 	 * @param object &$class The class to use to convert
@@ -307,6 +330,18 @@ class Std_Model extends CI_Model{
 	 */
 	public function Convert ( $data, &$class ) {
 		return self::_Convert_Properties_To_Database_Row($data, $class);
+	}
+
+	/**
+	 * This function converts database data to class data
+	 * @since 1.31
+	 * @access public
+	 * @param array $data  The data to convert
+	 * @param object $class The class to use
+	 * @return array
+	 */
+	public function Convert_From_Database ( $data, &$class  ) {
+		return self::_Convert_Database_Rows_To_Properties($data, $class);
 	}
 
 	/**
