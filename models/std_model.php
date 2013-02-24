@@ -143,9 +143,8 @@ class Std_Model extends CI_Model{
     		$duplicate_rows = self::_Convert_Properties_To_Database_Row($duplicate_rows, $class);
     	}
     	if (!is_null($table) && !is_null($data) && self::_Table_Exists($table)) {
-    		if (!self::_Linked_Duplicate_Check($class, $data, $table, $duplicate_rows)) {
+    		if ( ! self::_Linked_Duplicate_Check($class, $data, $table, $duplicate_rows) ) {
     			$this->db->insert($table,$data);
-
     		} else if ($duplicate_function == "STOP") {
     			return FALSE;
     		} else if ($duplicate_function == "OVERWRITE" || "ONLY DUBLICATE") {

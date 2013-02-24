@@ -77,7 +77,7 @@ class Batch_Loader {
 		foreach ( $query->result_array() as $row ) {
 			$Instance = new $object_name();
 			$Instance->Import($Instance->Convert_From_Database($row));
-			$objects[] = $Instance->Export();
+			$objects[] = $Instance->Export($fields);
 		}
 
 		return $objects;

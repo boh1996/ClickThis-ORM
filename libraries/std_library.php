@@ -21,6 +21,14 @@ class Std_Library{
 	public $Database_Table = NULL;
 
 	/**
+	 * If the class has been simple loaded
+	 * @since 1.4
+	 * @access public
+	 * @var boolean
+	 */
+	public $_INTERNAL_SIMPLE_LOADED = false;
+
+	/**
 	 * This property is used to convert class property names,
 	 * to database row names
 	 * @var array
@@ -954,7 +962,9 @@ class Std_Library{
 		}
 		$global_name = get_class($this)."_".$this->id;
 
-		if ( isset($GLOBALS[$global_name]) ) {
+		$this->_INTERNAL_SIMPLE_LOADED = $Simple;
+
+		if ( isset($GLOBALS[$global_name]) && $GLOBALS[$global_name]->_INTERNAL_SIMPLE_LOADED == $Simple ) {
 			self::_Copy_Object_To_This($GLOBALS[$global_name]);
 			return true;
 		}
