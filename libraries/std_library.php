@@ -3,7 +3,7 @@
  * This class i used as a parent for all the data classes,
  * the most of the other libraries is inherited from this library.
  * @package Libraries
- * @license http://illution.dk/copyright © Illution 2012
+ * @license https://illution.dk/copyright © Illution 2012
  * @subpackage Std Data Library Template
  * @category Library template
  * @package ClicKThis
@@ -133,7 +133,7 @@ class Std_Library{
 	 * @access public
 	 * @example
 	 * $this->_INTERNAL_LINK_PROPERTIES = array("Email,"Google_Id");
-	 */
+	 **/
 	public $_INTERNAL_SECURE_EXPORT_IGNORE = NULL;
 
 	/**
