@@ -3,7 +3,7 @@
  * This class i used as a parent for all the data classes,
  * the most of the other libraries is inherited from this library.
  * @package Libraries
- * @license https://illution.dk/copyright © Illution 2012
+ * @license https://illution.dk/copyright © Illution 2013
  * @subpackage Std Data Library Template
  * @category Library template
  * @package ClicKThis
@@ -781,6 +781,26 @@ class Std_Library{
 	}
 
 	/**
+	 * This function wraps the Microtime float function
+	 * @since 1.4
+	 * @access private
+	 */
+	private function _Get_Current_Time () {
+		return self::_Microtime_Float();
+	}
+
+	/**
+	 * This function returns the current UNIX Timestamp with milliseconds
+	 * @since 1.4
+	 * @access private
+	 * @return float
+	 */
+	private function _Microtime_Float () {
+	    list($usec, $sec) = explode(" ", microtime());
+	    return ((float)$usec + (float)$sec);
+	}
+
+	/**
 	 * This function is called from the model save function when the data is updated
 	 * @since 1.21
 	 * @access public
@@ -790,12 +810,12 @@ class Std_Library{
 			if (is_array($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
 				foreach ($this->_INTERNAL_LAST_UPDATED_PROPERTY as $Property) {
 					if (property_exists($this, $Property)) {
-						$this->{$Property} = time();
+						$this->{$Property} = self::_Get_Current_Time();
 					}
 				}
 			} else if (is_string($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
 				if (property_exists($this, $this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
-					$this->{$this->_INTERNAL_LAST_UPDATED_PROPERTY} = time();
+					$this->{$this->_INTERNAL_LAST_UPDATED_PROPERTY} = self::_Get_Current_Time();
 				}
 			}
 		}
@@ -826,12 +846,12 @@ class Std_Library{
 			if (is_array($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
 				foreach ($this->_INTERNAL_LAST_UPDATED_PROPERTY as $Property) {
 					if (property_exists($this, $Property)) {
-						$this->{$Property} = time();
+						$this->{$Property} = self::_Get_Current_Time();
 					}
 				}
 			} else if (is_string($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
 				if (property_exists($this, $this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
-					$this->{$this->_INTERNAL_LAST_UPDATED_PROPERTY} = time();
+					$this->{$this->_INTERNAL_LAST_UPDATED_PROPERTY} = self::_Get_Current_Time();
 				}
 			}
 		}
@@ -840,12 +860,12 @@ class Std_Library{
 			if (is_array($this->_INTERNAL_CREATED_TIME_PROPERTY)) {
 				foreach ($this->_INTERNAL_CREATED_TIME_PROPERTY as $Property) {
 					if (property_exists($this, $Property)) {
-						$this->{$Property} = time();
+						$this->{$Property} = self::_Get_Current_Time();
 					}
 				}
 			} else if ($this->_INTERNAL_CREATED_TIME_PROPERTY) {
 				if (property_exists($this, $this->_INTERNAL_CREATED_TIME_PROPERTY)) {
-					$this->{$this->_INTERNAL_CREATED_TIME_PROPERTY} = time();
+					$this->{$this->_INTERNAL_CREATED_TIME_PROPERTY} = self::_Get_Current_Time();
 				}
 			}
 		}
