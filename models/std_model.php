@@ -298,6 +298,20 @@ class Std_Model extends CI_Model{
 	}
 
 	/**
+	 * This function converts the fields from class property names to db column names
+	 * 
+	 * @since 1.4
+	 * @access public
+	 * @see _Convert_Fields
+	 * @param array $fields The fields to convert
+	 * @param object $class  The class to convert fields for
+	 * @return array
+	 */
+	public function Convert_Fields ( $fields, &$class ) {
+		return self::_Convert_Fields( $fields, $class  );
+	}
+
+	/**
 	 * This function converts an array of db data to class data
 	 * @since 1.31
 	 * @access private

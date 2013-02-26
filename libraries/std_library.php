@@ -683,6 +683,23 @@ class Std_Library{
 	}
 
 	/**
+	 * Thie function can be used to convert fields to db rows
+	 *
+	 * @since 1.4
+	 * @access public
+	 * @param array $fields An array of fields to convert
+	 * @return array
+	 * @example
+	 * Convert_Fields(array(
+	 * 	"id",
+	 * 	"identifier"
+	 * ));
+	 */
+	public function Convert_Fields ( $fields ) {
+		return $this->_INTERNAL_DATABASE_MODEL->Convert_Fields($fields, $this);
+	}
+
+	/**
 	 * This function converts this class' db data to class data ready for import
 	 * @since 1.4
 	 * @access public

@@ -61,7 +61,7 @@ class Batch_Loader {
 		}
 
 		if ( ! is_null($fields) ) {
-			$this->db->select(implode(",", $Object->Convert($fields)));
+			$this->db->select(implode(",", $Object->Convert_Fields($fields)));
 		}
 
 		$query = $this->db->get();
