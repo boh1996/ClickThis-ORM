@@ -61,7 +61,11 @@ class Batch_Loader {
 		}
 
 		if ( ! is_null($fields) ) {
-			$this->db->select(implode(",", $Object->Convert_Fields($fields)));
+			$db_fields = $fields;
+			if ( ! in_array("id", $fields) && property_exists($Object, "id") ) {
+				$db_fields[] = "id";
+			}
+			$this->db->select(implode(",", $Object->Convert_Fields($db_fields)));
 		}
 
 		$query = $this->db->get();
@@ -75,8 +79,11 @@ class Batch_Loader {
 		$objects = array();
 
 		foreach ( $query->result_array() as $row ) {
+
 			$Instance = new $object_name();
-			$Instance->Import($Instance->Convert_From_Database($row));
+
+			$Instance->Import($Instance->Convert_From_Database($row),false,false,array(),false,true);
+			$Instance->Import_Load($fields);
 			$objects[] = $Instance->Export($fields);
 		}
 

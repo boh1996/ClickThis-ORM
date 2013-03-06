@@ -332,7 +332,7 @@ class Std_Library{
 	 * @access public
 	 * @var array
 	 */
-	public $_INTERNAL_IMPORT_IGNORE = NULL;
+	public $_INTERNAL_IMPORT_IGNORE = array("id");
 
 	/**
 	 * This array contains the keywords to ignore when exporting
@@ -696,6 +696,12 @@ class Std_Library{
 	 * ));
 	 */
 	public function Convert_Fields ( $fields ) {
+		foreach ( $fields as $key => $field ) {
+			if ( isset($this->_INTERNAL_LINK_PROPERTIES[$field]) ) {
+				unset($fields[$key]);
+			}
+		}
+
 		return $this->_INTERNAL_DATABASE_MODEL->Convert_Fields($fields, $this);
 	}
 
@@ -823,6 +829,10 @@ class Std_Library{
 	 * @access public
 	 */
 	public function Data_Updated () {
+		if ( ! isset($this->_INTERNAL_CURRENT_USER) && defined("STD_LIBRARY_CURRENT_USER") ) {
+			$this->_INTERNAL_CURRENT_USER = STD_LIBRARY_CURRENT_USER;
+		}
+
 		if (self::_Isset("_INTERNAL_LAST_UPDATED_PROPERTY")) {
 			if (is_array($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
 				foreach ($this->_INTERNAL_LAST_UPDATED_PROPERTY as $Property) {
@@ -859,6 +869,10 @@ class Std_Library{
 	 * @access public
 	 */
 	public function Data_Created () {
+		if ( ! isset($this->_INTERNAL_CURRENT_USER) && defined("STD_LIBRARY_CURRENT_USER") ) {
+			$this->_INTERNAL_CURRENT_USER = STD_LIBRARY_CURRENT_USER;
+		}
+
 		if (self::_Isset("_INTERNAL_LAST_UPDATED_PROPERTY")) {
 			if (is_array($this->_INTERNAL_LAST_UPDATED_PROPERTY)) {
 				foreach ($this->_INTERNAL_LAST_UPDATED_PROPERTY as $Property) {
@@ -994,7 +1008,7 @@ class Std_Library{
 	 * @return boolean If the load is succes with data is true returned else is false returned
 	 */
 	public function Load($Params = NULL,$Simple = false,$Fields = NULL) {
-		if(!is_null($Params) && !is_array($Params)){
+		if( ! is_null($Params) && ! is_array($Params)){
 			$this->id = (int)$Params;
 		}
 		$global_name = get_class($this)."_".$this->id;
@@ -1056,7 +1070,7 @@ class Std_Library{
 
 		self::_Load_Link($Fields);
 		self::_Link_Properties($Fields);
-		self::_Load_From_Class($Simple, $Arguments);
+		self::_Load_From_Class($Simple, $Arguments, $Fields);
 		self::_Force_Array();
 		$this->_INTERNAL_LOADED = true;
 		$GLOBALS[$global_name] = $this;
@@ -2245,18 +2259,28 @@ class Std_Library{
 	 * @param array $Array The data to import in Name => Value format
 	 * @param boolean $Override If this flag is set to true, then if the data is an array the clas $s data is overridden
 	 * @param boolean $Secure If this parameter is set to true, then the secure ignore check is done
+	 * @param array $Ignore_List The fields to ignore
 	 * @since 1.0
 	 * @access public
 	 */
-	public function Import($Array = NULL,$Override = false,$Secure = false){
+	public function Import($Array = NULL,$Override = false,$Secure = false,$Ignore_List = array(), $Extra_Load = true, $DontIgnore = false){
 		if(!is_null($Array) && is_array($Array) && count($Array) > 0){
 			$Result = false;
-			foreach ($Array as $Property => $Value) {
-				$Import_Ignore = array();
-				if (property_exists($this, "_INTERNAL_IMPORT_IGNORE") && isset($this->_INTERNAL_IMPORT_IGNORE) && is_array($this->_INTERNAL_IMPORT_IGNORE)){
-					$Import_Ignore = $this->_INTERNAL_IMPORT_IGNORE;
+
+			$Import_Ignore = array();
+
+			if ( ! $DontIgnore ) {
+				$Import_Ignore = array("Database_Table","_CI","id");
+				if ( isset($this->_INTERNAL_IMPORT_IGNORE) ) {
+					$Import_Ignore = array_merge($Import_Ignore, $this->_INTERNAL_IMPORT_IGNORE);
 				}
-				if(property_exists($this, $Property) && !self::_Secure_Ignore($Property,$Secure,$Import_Ignore)){
+				$Import_Ignore = array_merge($Ignore_List,$Import_Ignore);
+				array_unique($Import_Ignore);
+			}
+
+			foreach ($Array as $Property => $Value) {
+
+				if(property_exists($this, $Property) && ! self::_Secure_Ignore($Property,$Secure,$Import_Ignore) && ( ! is_array($Import_Ignore) || ( is_array($Import_Ignore) && ! in_array($Property, $Import_Ignore) ) ) ){
 					$Result = true;
 					if (isset($this->_INTERNAL_IMPORT_OVERWRITE) && is_array($this->_INTERNAL_IMPORT_OVERWRITE) && (in_array($Property, $this->_INTERNAL_IMPORT_OVERWRITE) || array_key_exists($Property, $this->_INTERNAL_IMPORT_OVERWRITE))) {
 						$Overwrite = (array_key_exists($Property, $this->_INTERNAL_IMPORT_OVERWRITE))? $this->_INTERNAL_IMPORT_OVERWRITE[$Property] : true;
@@ -2264,6 +2288,9 @@ class Std_Library{
 						$Overwrite = $Override;
 					}
 					if (!is_null($Value) && !is_null($Property) && $Value != "" && $Value != "null") {
+						if ( $Overwrite ) {
+							$this->{$Property} = null;
+						}
 						if(self::_Has_Load_From_Class($Property)){
 							$ClassName = self::_Get_Load_From_Class_Data($Property);
 							$this->_CI->load->library($ClassName);
@@ -2322,9 +2349,26 @@ class Std_Library{
 		} else {
 			return FALSE;
 		}
-		self::_Load_From_Class();
-		self::_Force_Array();
+		if ( $Extra_Load ) {
+			self::_Load_Link();
+			self::_Link_Properties();
+			self::_Load_From_Class();
+			self::_Force_Array();
+		}
 		return $Result;
+	}
+
+	/**
+	 * Run this after import, to run Link Properties and Load links
+	 *
+	 * @since 1.4
+	 * @param array $fields The fields to load
+	 */
+	public function Import_Load ( $fields = null ) {
+		self::_Load_Link($fields);
+		self::_Link_Properties($fields);
+		self::_Load_From_Class(false, null, $fields);
+		self::_Force_Array();
 	}
 
 	/**
@@ -2410,13 +2454,18 @@ class Std_Library{
 	 * to load up data stored in the specified properties as classes
 	 * @param boolean $Simple If this flag is set to true, then this function woundn't do a thing
 	 * @param array $Arguments Other arguments parsed from the load function
+	 * @param array $Fields The fields to load
 	 * @since 1.0
 	 * @access private
 	 */
-	private function _Load_From_Class($Simple = false,$Arguments = NULL){
+	private function _Load_From_Class($Simple = false,$Arguments = NULL, $Fields = null) {
 		if(property_exists($this, "_INTERNAL_LOAD_FROM_CLASS")  && isset($this->_INTERNAL_LOAD_FROM_CLASS) && !is_null($this->_INTERNAL_LOAD_FROM_CLASS) && is_array($this->_INTERNAL_LOAD_FROM_CLASS) && !$Simple){
 			if(!is_null($this->_INTERNAL_LOAD_FROM_CLASS)){
 				foreach ($this->_INTERNAL_LOAD_FROM_CLASS as $Key => $ClassName) {
+					if ( ! is_null($Fields) && is_array($Fields) && ! in_array($Key, $Fields) ) {
+						continue;
+					}
+
 					if(property_exists($this, $Key) && !is_null($this->{$Key})){
 						$ChildSimple = $Simple;
 						if(self::_Has_Simple_Load_Key($Key)){

@@ -656,6 +656,7 @@ class Std_Model extends CI_Model{
 				}
 				
 				$Data = $Class->Database();
+
 				foreach ($Data as $key => $value) {
 					if ($value == "") {
 						$Data[$key] = NULL;
@@ -663,12 +664,13 @@ class Std_Model extends CI_Model{
 				}
 				array_unique($Data);
 				if(property_exists($Class, "Database_Table") && count($Data) > 0){
-					$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
-					if ( $this->db->affected_rows() ) {
-						return true;
-					} else {
-						return FALSE;
-					}
+
+				$this->db->where(array('id' => $Class->id))->update($Class->Database_Table, self::_Convert_Properties_To_Database_Row($Data,$Class));
+				if ( $this->db->affected_rows() ) {
+					return true;
+				} else {
+					return FALSE;
+				}
 				} else {
 					return false;
 				}
