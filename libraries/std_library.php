@@ -1044,6 +1044,7 @@ class Std_Library{
 				return false;
 			}
 		}
+
 		if(!is_null($Params) && isset($this->_CI->_INTERNAL_DATABASE_MODEL) && !is_null($this->_CI->_INTERNAL_DATABASE_MODEL)){
 			if (!is_array($Params)) {
 				if(!$this->_CI->_INTERNAL_DATABASE_MODEL->Load($Params,$this,$Fields)){

@@ -18,6 +18,14 @@ class Batch_Loader {
 	private $_last = null;
 
 	/**
+	 * If the last query was a success or a failure
+	 *
+	 * @since 1.0
+	 * @var boolean
+	 */
+	public $success = false;
+
+	/**
 	 * A reffence to CodeIgniter->db
 	 * @since 1.0
 	 * @access public
@@ -29,28 +37,25 @@ class Batch_Loader {
 		$this->_CI =& get_instance();
 		$this->db =& $this->_CI->db;
 	}
-		
+
 	/**
-	 * This function can load a group of objects with the same type
+	 * This function fetches the results asked for and loads into objects,
+	 * use other functions to set thw where, where_in or like query
 	 * @since 1.0
 	 * @access public
 	 * @return array|boolean
 	 * @param string $table       The db table to load from
 	 * @param string $object_name The name of the object to load
-	 * @param array $where       The select query
 	 * @param integer $limit       Limit used for pagination
 	 * @param integer $offset      Offset used for pagination
 	 * @param array $fields      The database fields to select
 	 */
-	public function Load ( $table, $object_name, $where = null,  $limit = null, $offset = null, $fields = null ) {
+	protected function _Fetch ( $table, $object_name, $limit = null, $offset = null, $fields = null ) {
 		$this->_CI->load->library($object_name);
 
 		$Object = new $object_name();
 
 		$this->db->from($table);
-		if ( ! is_null($where) && is_array($where) ) {
-			$this->db->where($Object->Convert($where));
-		}
 
 		if ( ! is_null($limit) && ! is_null($offset) ) {
 			$this->db->limit($limit, $offset);
@@ -87,7 +92,38 @@ class Batch_Loader {
 			$objects[] = $Instance->Export($fields);
 		}
 
+		$this->success = true;
+
 		return $objects;
+	}
+		
+	/**
+	 * This function can load a group of objects with the same type
+	 * @since 1.0
+	 * @access public
+	 * @return array|boolean
+	 * @param string $table       The db table to load from
+	 * @param string $object_name The name of the object to load
+	 * @param array $where       The select query
+	 * @param integer $limit       Limit used for pagination
+	 * @param integer $offset      Offset used for pagination
+	 * @param array $fields      The database fields to select
+	 * @param array $query 		 Search query
+	 */
+	public function Load ( $table, $object_name, $where = null,  $limit = null, $offset = null, $fields = null, $query = null ) {
+		$this->_CI->load->library($object_name);
+
+		$Object = new $object_name();
+
+		if ( ! is_null($where) && is_array($where) ) {
+			$this->db->where($Object->Convert($where));
+		}
+
+		if ( ! is_null($query) && is_array($query) ) {
+			$this->db->like($Object->Convert($query));
+		}
+
+		return self::_Fetch($table, $object_name, $limit, $offset, $fields);
 	}
 
 	/**

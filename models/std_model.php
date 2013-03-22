@@ -512,7 +512,7 @@ class Std_Model extends CI_Model{
 			if(!is_null($Id)){
 				$Class->id = $Id;
 			}
-			$Fields = implode(",", self::_Convert_Fields($Fields,$Class));
+			$Fields = implode(",", $Class->Convert_Fields($Fields));
 			if(!is_null($Class->id) && self::_Table_Exists($Class->Database_Table) && self::_Exists($Class->id,$Class->Database_Table)){
 				$ClassQuery = $this->db->limit(1)->select($Fields)->where(array("id" => $Class->id))->get($Class->Database_Table);
 				$Row = current($ClassQuery->result());
