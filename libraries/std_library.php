@@ -683,6 +683,17 @@ class Std_Library{
 	}
 
 	/**
+	 * Returns a list of class fields
+	 *
+	 * @since 1.0
+	 * @access public
+	 * @return array<string>
+	 */
+	public function Fields () {
+		return self::_Get_Fields();
+	}
+
+	/**
 	 * Thie function can be used to convert fields to db rows
 	 *
 	 * @since 1.4

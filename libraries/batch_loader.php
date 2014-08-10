@@ -59,9 +59,9 @@ class Batch_Loader {
 
 		if ( ! is_null($limit) && ! is_null($offset) ) {
 			$this->db->limit($limit, $offset);
-		} else if ( is_null($limit) && ! ! is_null($offset) ) {
+		} else if ( is_null($limit) && ! is_null($offset) ) {
 			$this->db->limit(0, $offset);
-		} else {
+		} else if ( ! is_null($limit) && is_null($offset) ) {
 			$this->db->limit($limit);
 		}
 
@@ -75,7 +75,7 @@ class Batch_Loader {
 
 		$query = $this->db->get();
 
-		if ( $query->num_rows() == false ) return false; 
+		if ( $query->num_rows() == false ) return false;
 
 		$this->last = array();
 
